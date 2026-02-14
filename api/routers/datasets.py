@@ -6,7 +6,6 @@ GET /datasets/{id} - Get single dataset.
 """
 
 from fastapi import APIRouter, HTTPException, Query
-from typing import Optional
 
 from api.dependencies import DatasetRepoDep
 from api.schemas.responses import DatasetResponse, DatasetListResponse, DatasetListItem
@@ -15,16 +14,14 @@ router = APIRouter(prefix="/datasets", tags=["datasets"])
 
 
 @router.get("", response_model=DatasetListResponse)
-def list_datasets(
+async def list_datasets(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     repo: DatasetRepoDep = None,
 ) -> DatasetListResponse:
-    """
-    List datasets with pagination.
-    """
-    result = repo.get_paged(page=page, page_size=page_size)
-    
+    """List datasets with pagination."""
+    result = await repo.get_paged(page=page, page_size=page_size)
+
     items = [
         DatasetListItem(
             identifier=d.identifier,
@@ -34,7 +31,7 @@ def list_datasets(
         )
         for d in result.items
     ]
-    
+
     return DatasetListResponse(
         items=items,
         total=result.total,
@@ -45,18 +42,16 @@ def list_datasets(
 
 
 @router.get("/{identifier}", response_model=DatasetResponse)
-def get_dataset(
+async def get_dataset(
     identifier: str,
     repo: DatasetRepoDep = None,
 ) -> DatasetResponse:
-    """
-    Get a single dataset by identifier.
-    """
-    dataset = repo.get(identifier, strategy="full")
-    
+    """Get a single dataset by identifier."""
+    dataset = await repo.get(identifier)
+
     if dataset is None:
         raise HTTPException(status_code=404, detail="Dataset not found")
-    
+
     return DatasetResponse(
         identifier=dataset.identifier,
         title=dataset.title or "",

@@ -5,19 +5,19 @@ Dataset search and discovery API with hybrid search capabilities.
 
 Usage:
     uvicorn api.main:app --reload
-    
+
     # Or
     python -m api.main
 """
 from dotenv import load_dotenv
-load_dotenv() 
+load_dotenv()
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.dependencies import init_dependencies, shutdown_dependencies
-from api.routers import health, datasets, search
+from api.dependencies import init_dependencies, shutdown_dependencies, get_service_status
+from api.routers import health, datasets, search, upload, rag
 
 
 # =============================================================================
@@ -28,26 +28,28 @@ from api.routers import health, datasets, search
 async def lifespan(app: FastAPI):
     """
     Application lifespan handler.
-    
+
     Initializes dependencies on startup, cleans up on shutdown.
     """
     # Startup
-    print("🚀 Starting DSH ETL Search AI...")
-    init_dependencies()
-    
-    from api.dependencies import get_service_status
-    status = get_service_status()
-    
-    print(f"   📁 Database: {'✓' if status['database'] else '✗'} ({status['dataset_count']} datasets)")
-    print(f"   🧠 Vector store: {'✓' if status['vector_store'] else '✗'} ({status['indexed_count']} indexed)")
-    print(f"   🔑 Embeddings: {'✓' if status['embedding_service'] else '✗ (keyword-only mode)'}")
+    print("Starting DSH ETL Search AI...")
+    await init_dependencies()
+
+    status = await get_service_status()
+
+    db_ok = status['database']
+    vs_ok = status['vector_store']
+    emb_ok = status['embedding_service']
+    print(f"   Database: {'ok' if db_ok else 'FAILED'} ({status['dataset_count']} datasets)")
+    print(f"   Vector store: {'ok' if vs_ok else 'not available'} ({status['indexed_count']} indexed)")
+    print(f"   Embeddings: {'ok' if emb_ok else 'not available (keyword-only mode)'}")
     print()
-    
+
     yield
-    
+
     # Shutdown
-    print("👋 Shutting down...")
-    shutdown_dependencies()
+    print("Shutting down...")
+    await shutdown_dependencies()
 
 
 # =============================================================================
@@ -61,17 +63,19 @@ Dataset search and discovery API for CEH Environmental Information Data Centre.
 
 ## Features
 - **Hybrid Search**: Combines semantic (vector) and keyword search
+- **Document Upload**: Upload PDF, CSV, or JSON files with automatic embedding
+- **RAG**: Retrieval Augmented Generation - ask questions, get context-based answers
 - **Automatic Fallback**: Works without embeddings (keyword-only mode)
 - **Pagination**: All list endpoints support pagination
 
 ## Search Modes
 The `/search` endpoint automatically selects the best mode:
 - **hybrid**: Semantic + keyword (when embeddings available)
-- **keyword**: SQL LIKE matching (fallback)
+- **keyword**: MongoDB regex matching (fallback)
 
 You can force a mode with `?mode=keyword` or `?mode=semantic`.
     """,
-    version="0.1.0",
+    version="0.2.0",
     lifespan=lifespan,
 )
 
@@ -96,6 +100,8 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(datasets.router, prefix="/api")
 app.include_router(search.router, prefix="/api")
+app.include_router(upload.router, prefix="/api")
+app.include_router(rag.router, prefix="/api")
 
 
 # =============================================================================

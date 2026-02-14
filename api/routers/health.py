@@ -12,19 +12,19 @@ router = APIRouter(tags=["health"])
 
 
 @router.get("/health")
-def health_check() -> dict:
+async def health_check() -> dict:
     """
     Health check endpoint.
-    
+
     Returns status of all services:
-    - database: SQLite connection
-    - vector_store: ChromaDB
-    - embedding_service: Cohere API
+    - database: MongoDB connection
+    - vector_store: MongoDB Atlas vector search
+    - embedding_service: SentenceTransformers
     - dataset_count: Number of datasets in DB
     - indexed_count: Number of embedded documents
     """
-    status = get_service_status()
-    
+    status = await get_service_status()
+
     return {
         "status": "healthy" if status["database"] else "degraded",
         "services": {

@@ -78,3 +78,38 @@ class HealthResponse(BaseModel):
     services: dict
     counts: dict
     search_mode: str
+
+
+# =============================================================================
+# Upload Responses
+# =============================================================================
+
+class UploadResponse(BaseModel):
+    """Response after uploading a document."""
+    identifier: str
+    title: str
+    abstract: str
+    keywords: list[str] = []
+    embedded: bool = False
+    message: str
+
+
+# =============================================================================
+# RAG Responses
+# =============================================================================
+
+class RAGContextDocument(BaseModel):
+    """A document used as context in RAG."""
+    identifier: str
+    title: str
+    abstract: str
+    score: float
+    keywords: list[str] = []
+
+
+class RAGResponse(BaseModel):
+    """Response from the RAG endpoint."""
+    question: str
+    answer: str
+    context: list[RAGContextDocument]
+    total_context_docs: int

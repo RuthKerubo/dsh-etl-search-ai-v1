@@ -27,44 +27,37 @@ async def search_datasets(
 ) -> SearchResponse:
     """
     Search for datasets.
-    
+
     Automatically uses the best available search mode:
     - If embeddings configured: hybrid search (semantic + keyword)
     - Otherwise: keyword-only search
-    
-    Response includes `mode` field indicating which was used.
     """
     start_time = time.time()
-    
-    # Determine search mode
+
     can_hybrid = hybrid_search is not None
-    
+
     if mode == "keyword" or (mode is None and not can_hybrid):
-        # Keyword-only search
         return await _keyword_search(q, limit, repo, start_time)
-    
+
     elif mode == "semantic" and can_hybrid:
-        # Semantic-only search
         return await _semantic_search(q, limit, hybrid_search, start_time)
-    
+
     elif can_hybrid:
-        # Hybrid search (default when available)
         return await _hybrid_search(q, limit, hybrid_search, start_time)
-    
+
     else:
-        # Fallback to keyword
         return await _keyword_search(q, limit, repo, start_time)
 
 
 async def _hybrid_search(
     query: str,
     limit: int,
-    service: "HybridSearchService",
+    service,
     start_time: float,
 ) -> SearchResponse:
     """Perform hybrid search."""
     response = await service.search(query, limit=limit)
-    
+
     results = [
         SearchResultItem(
             identifier=r.dataset_id,
@@ -79,9 +72,9 @@ async def _hybrid_search(
         )
         for r in response.results
     ]
-    
+
     duration_ms = (time.time() - start_time) * 1000
-    
+
     return SearchResponse(
         query=query,
         results=results,
@@ -97,12 +90,12 @@ async def _hybrid_search(
 async def _semantic_search(
     query: str,
     limit: int,
-    service: "HybridSearchService",
+    service,
     start_time: float,
 ) -> SearchResponse:
     """Perform semantic-only search."""
     results_raw = await service.search_semantic_only(query, limit=limit)
-    
+
     results = [
         SearchResultItem(
             identifier=r.dataset_id,
@@ -116,9 +109,9 @@ async def _semantic_search(
         )
         for r in results_raw
     ]
-    
+
     duration_ms = (time.time() - start_time) * 1000
-    
+
     return SearchResponse(
         query=query,
         results=results,
@@ -134,18 +127,18 @@ async def _semantic_search(
 async def _keyword_search(
     query: str,
     limit: int,
-    repo: "DatasetRepository",
+    repo,
     start_time: float,
 ) -> SearchResponse:
     """Perform keyword-only search (fallback)."""
-    datasets = repo.search(query, limit=limit)
-    
+    datasets = await repo.search(query, limit=limit)
+
     results = [
         SearchResultItem(
             identifier=d.identifier,
             title=d.title or "",
             abstract=(d.abstract or "")[:300],
-            score=1.0 / (i + 1),  # Simple rank-based score
+            score=1.0 / (i + 1),
             keywords=d.keywords[:5] if d.keywords else [],
             from_semantic=False,
             from_keyword=True,
@@ -153,9 +146,9 @@ async def _keyword_search(
         )
         for i, d in enumerate(datasets)
     ]
-    
+
     duration_ms = (time.time() - start_time) * 1000
-    
+
     return SearchResponse(
         query=query,
         results=results,
