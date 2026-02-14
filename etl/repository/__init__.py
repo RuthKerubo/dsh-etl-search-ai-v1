@@ -1,99 +1,51 @@
 """
 Repository layer for data access.
 
-This layer provides a clean interface for database operations,
-hiding SQLAlchemy implementation details from the rest of the application.
+Uses async MongoDB via motor for all persistence.
 
 Architecture:
-    ┌─────────────────────────────────────────────────────────────────────┐
-    │                          UnitOfWork                                 │
-    │                                                                     │
-    │  Owns: Session (single transaction boundary)                        │
-    │  Provides: .datasets, .users, .search_history                       │
-    │  Controls: commit(), rollback()                                     │
-    └─────────────────────────────────────────────────────────────────────┘
-                                    │
-          ┌─────────────────────────┼─────────────────────────┐
-          │                         │                         │
-          ▼                         ▼                         ▼
-    DatasetRepository       UserRepository       SearchHistoryRepository
+    MongoDBConnection
+        ├── .datasets collection → DatasetRepository
+        ├── .users collection
+        └── .search_history collection
 
-Key components:
-    - SessionFactory: Creates and manages database sessions
-    - UnitOfWork: Transaction boundary that OWNS repositories
-    - DatasetRepository: CRUD and search for datasets
-    - UserRepository: User accounts with authentication
-    - SearchHistoryRepository: Search analytics and history
+Usage:
+    from etl.repository import MongoDBConnection, DatasetRepository
 
-Design Principles:
-    - Repositories work with domain models only (not ORM models)
-    - Two modes: standalone (per-operation sessions) or UoW (shared transaction)
-    - UnitOfWork owns repositories for atomic cross-repo operations
+    conn = MongoDBConnection()
+    await conn.connect()
 
-Usage Examples:
-
-    # Setup
-    from etl.repository import (
-        SessionFactory,
-        DatabaseConfig,
-        DatasetRepository,
-        UnitOfWork,
-    )
-
-    config = DatabaseConfig(database_path="data/metadata.db")
-    session_factory = SessionFactory(config)
-    session_factory.init_db()
-
-    # Simple reads (standalone mode)
-    repo = DatasetRepository(session_factory)
-    dataset = repo.get("abc-123")
-    results = repo.search("climate")
-
-    # Writes with transaction (UoW mode)
-    with UnitOfWork(session_factory) as uow:
-        uow.datasets.save(dataset1)
-        uow.datasets.save(dataset2)
-        uow.users.save(user)
-        uow.search_history.record_search("query", result_count=42)
-        uow.commit()  # All or nothing
+    repo = DatasetRepository(conn.datasets)
+    dataset = await repo.get("abc-123")
+    results = await repo.search("climate")
 """
 
 from .base import (
     BulkOperationResult,
-    BulkRepository,
     PagedResult,
-    Repository,
-    SearchableRepository,
 )
-from .session import (
-    DatabaseConfig,
-    SessionFactory,
-    UnitOfWork,
-    get_session_factory,
-    reset_session_factory,
+from .mongodb import (
+    MongoDBConfig,
+    MongoDBConnection,
+    get_connection,
+    get_database,
+    reset_connection,
 )
 from .dataset_repository import DatasetRepository
-from .user_repository import UserRepository
-from .search_history_repository import SearchHistoryRepository
 
 
 __all__ = [
     # Base classes
-    "Repository",
-    "SearchableRepository",
-    "BulkRepository",
     "BulkOperationResult",
     "PagedResult",
 
-    # Session management
-    "DatabaseConfig",
-    "SessionFactory",
-    "UnitOfWork",
-    "get_session_factory",
-    "reset_session_factory",
+    # MongoDB connection
+    "MongoDBConfig",
+    "MongoDBConnection",
+    "get_connection",
+    "get_database",
+    "reset_connection",
 
     # Concrete repositories
     "DatasetRepository",
-    "UserRepository",
-    "SearchHistoryRepository",
 ]
