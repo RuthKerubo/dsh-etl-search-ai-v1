@@ -1,7 +1,7 @@
 """
 ETL Pipeline Orchestrator.
 
-Wires together fetch → parse → store into a cohesive pipeline.
+Wires together fetch -> parse -> store into a cohesive pipeline.
 Handles batching, progress reporting, and error recovery.
 
 Design decisions:
@@ -13,8 +13,8 @@ Design decisions:
 Usage:
     pipeline = ETLPipeline(
         client=CEHCatalogueClient(cache_dir="./cache"),
-        parser=CEHJSONParser(),
-        session_factory=session_factory,
+        parser_registry=create_default_registry(),
+        repository=repo,
     )
 
     result = await pipeline.run(dataset_ids)
@@ -32,7 +32,7 @@ import traceback
 
 from etl.client import CEHCatalogueClient, DatasetFetchResult, FetchFormat
 from etl.parsers import MetadataParser, ParserRegistry, get_default_registry
-from etl.repository import SessionFactory, UnitOfWork, DatasetRepository
+from etl.repository.dataset_repository import DatasetRepository
 from etl.models.dataset import DatasetMetadata
 
 
@@ -207,47 +207,19 @@ class ETLPipeline:
     """
     ETL Pipeline for CEH datasets.
 
-    Orchestrates: fetch → parse → store
-
-    Features:
-    - Batch commits for safety + performance
-    - Structured result reporting
-    - Progress callbacks
-    - Graceful error handling
-
-    Example:
-        pipeline = ETLPipeline(
-            client=CEHCatalogueClient(cache_dir="./cache"),
-            parser_registry=create_default_registry(),
-            session_factory=session_factory,
-        )
-
-        result = await pipeline.run(dataset_ids)
-
-        if result.failed:
-            for f in result.failed:
-                print(f"{f.dataset_id}: {f.error_message}")
+    Orchestrates: fetch -> parse -> store (async MongoDB)
     """
 
     def __init__(
         self,
         client: CEHCatalogueClient,
         parser_registry: ParserRegistry,
-        session_factory: SessionFactory,
+        repository: DatasetRepository,
         config: Optional[PipelineConfig] = None,
     ):
-        """
-        Initialize the pipeline.
-
-        Args:
-            client: CEH catalogue client for fetching
-            parser_registry: Registry of metadata parsers
-            session_factory: Database session factory
-            config: Pipeline configuration
-        """
         self.client = client
         self.parser_registry = parser_registry
-        self.session_factory = session_factory
+        self.repository = repository
         self.config = config or PipelineConfig()
 
     async def run(
@@ -255,20 +227,10 @@ class ETLPipeline:
         dataset_ids: list[str],
         progress_callback: Optional[ProgressCallback] = None,
     ) -> PipelineResult:
-        """
-        Run the ETL pipeline for given dataset IDs.
-
-        Args:
-            dataset_ids: List of dataset UUIDs to process
-            progress_callback: Optional callback for progress updates
-
-        Returns:
-            PipelineResult with successes and failures
-        """
+        """Run the ETL pipeline for given dataset IDs."""
         result = PipelineResult()
         total = len(dataset_ids)
 
-        # Process in batches for commit safety
         batch: list[ProcessedDataset] = []
 
         # Fetch all datasets (async, rate-limited)
@@ -307,7 +269,7 @@ class ETLPipeline:
         # Process each successful fetch
         for i, dataset_id in enumerate(dataset_ids):
             if dataset_id not in fetch_map:
-                continue  # Already recorded as fetch failure
+                continue
 
             fetch_result = fetch_map[dataset_id]
             processed = await self._process_dataset(fetch_result)
@@ -320,7 +282,6 @@ class ETLPipeline:
                 if self.config.stop_on_error:
                     break
 
-            # Progress callback
             if progress_callback:
                 progress_callback(ProgressUpdate(
                     dataset_id=dataset_id,
@@ -352,15 +313,7 @@ class ETLPipeline:
         self,
         fetch_result: DatasetFetchResult,
     ) -> ProcessedDataset:
-        """
-        Process a single fetched dataset (parse only, no commit).
-
-        Args:
-            fetch_result: Result from fetching the dataset
-
-        Returns:
-            ProcessedDataset ready for batched commit
-        """
+        """Process a single fetched dataset (parse only, no commit)."""
         processed = ProcessedDataset(
             dataset_id=fetch_result.dataset_id,
             success=False,
@@ -369,17 +322,14 @@ class ETLPipeline:
         )
 
         try:
-            # Parse JSON content
             if not fetch_result.json_content:
                 raise ValueError("No JSON content available")
 
-            # Parse returns DatasetMetadata directly (not a result wrapper)
             metadata = self.parser_registry.parse(
                 fetch_result.json_content,
                 content_type="application/json",
             )
 
-            # Attach raw documents if configured
             if self.config.store_raw_documents:
                 metadata.raw_document = fetch_result.json_content
                 metadata.source_format = "json"
@@ -400,44 +350,38 @@ class ETLPipeline:
         self,
         batch: list[ProcessedDataset],
     ) -> list[ProcessedDataset]:
-        """
-        Commit a batch of processed datasets to the database.
-
-        Args:
-            batch: List of successfully parsed datasets
-
-        Returns:
-            List of successfully stored datasets
-        """
+        """Commit a batch of processed datasets to MongoDB."""
         stored: list[ProcessedDataset] = []
 
-        with UnitOfWork(self.session_factory) as uow:
-            for processed in batch:
-                try:
-                    if processed.metadata:
-                        uow.datasets.save(processed.metadata)
-                        processed.stage_completed = PipelineStage.STORE
-                        stored.append(processed)
-                except Exception as e:
-                    processed.success = False
-                    processed.error_stage = PipelineStage.STORE
-                    processed.error_message = str(e)
-                    processed.error_traceback = traceback.format_exc()
+        entities = []
+        entity_map: dict[str, ProcessedDataset] = {}
 
-            uow.commit()
+        for processed in batch:
+            if processed.metadata:
+                entities.append(processed.metadata)
+                entity_map[processed.metadata.identifier] = processed
+
+        if entities:
+            bulk_result = await self.repository.save_many(entities)
+
+            for identifier in bulk_result.succeeded:
+                if identifier in entity_map:
+                    p = entity_map[identifier]
+                    p.stage_completed = PipelineStage.STORE
+                    stored.append(p)
+
+            for identifier, error in bulk_result.failed:
+                if identifier in entity_map:
+                    p = entity_map[identifier]
+                    p.success = False
+                    p.error_stage = PipelineStage.STORE
+                    p.error_message = error
+                    p.error_traceback = traceback.format_exc()
 
         return stored
 
     async def run_single(self, dataset_id: str) -> ProcessedDataset:
-        """
-        Process a single dataset (convenience method).
-
-        Args:
-            dataset_id: Dataset UUID
-
-        Returns:
-            ProcessedDataset
-        """
+        """Process a single dataset (convenience method)."""
         result = await self.run([dataset_id])
 
         if result.successful:
@@ -465,17 +409,17 @@ def create_console_progress() -> ProgressCallback:
         nonlocal last_len
 
         icons = {
-            PipelineStage.FETCH: "📥",
-            PipelineStage.PARSE: "🔍",
-            PipelineStage.STORE: "💾",
-            PipelineStage.COMPLETE: "✅" if update.success else "❌",
+            PipelineStage.FETCH: "\U0001f4e5",
+            PipelineStage.PARSE: "\U0001f50d",
+            PipelineStage.STORE: "\U0001f4be",
+            PipelineStage.COMPLETE: "\u2705" if update.success else "\u274c",
         }
-        icon = icons.get(update.stage, "⏳")
+        icon = icons.get(update.stage, "\u23f3")
         cache_indicator = " (cached)" if update.from_cache else ""
 
         bar_width = 30
         filled = int(bar_width * update.current / update.total)
-        bar = "█" * filled + "░" * (bar_width - filled)
+        bar = "\u2588" * filled + "\u2591" * (bar_width - filled)
 
         line = (
             f"\r{icon} [{bar}] {update.progress_pct:5.1f}% "
@@ -536,35 +480,17 @@ class Checkpoint:
 
 
 class ResumableETLPipeline(ETLPipeline):
-    """
-    ETL Pipeline with checkpoint support for resumable runs.
-
-    Saves progress to disk so pipeline can be resumed after crashes.
-
-    Example:
-        pipeline = ResumableETLPipeline(
-            client=client,
-            parser_registry=create_default_registry(),
-            session_factory=session_factory,
-            checkpoint_path=Path("./checkpoints/etl_run.json"),
-        )
-
-        # First run - processes all
-        result = await pipeline.run(dataset_ids)
-
-        # If crashed, second run continues from checkpoint
-        result = await pipeline.run(dataset_ids)
-    """
+    """ETL Pipeline with checkpoint support for resumable runs."""
 
     def __init__(
         self,
         client: CEHCatalogueClient,
         parser_registry: ParserRegistry,
-        session_factory: SessionFactory,
+        repository: DatasetRepository,
         checkpoint_path: Path,
         config: Optional[PipelineConfig] = None,
     ):
-        super().__init__(client, parser_registry, session_factory, config)
+        super().__init__(client, parser_registry, repository, config)
         self.checkpoint_path = checkpoint_path
         self.checkpoint = Checkpoint.load(checkpoint_path)
 
@@ -574,17 +500,13 @@ class ResumableETLPipeline(ETLPipeline):
         progress_callback: Optional[ProgressCallback] = None,
     ) -> PipelineResult:
         """Run pipeline, skipping already-processed datasets."""
-
-        # Filter to remaining IDs
         remaining = self.checkpoint.remaining(dataset_ids)
 
         if not remaining:
-            return PipelineResult()  # Nothing to do
+            return PipelineResult()
 
-        # Run the base pipeline
         result = await super().run(remaining, progress_callback)
 
-        # Update checkpoint
         for processed in result.successful:
             self.checkpoint.processed_ids.add(processed.dataset_id)
         for processed in result.failed:
