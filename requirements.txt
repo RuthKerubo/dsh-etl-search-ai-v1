@@ -1,8 +1,7 @@
 # =============================================================================
 # DSH ETL Search AI - Requirements
 # =============================================================================
-# Lightweight setup using Cohere API for embeddings (no torch/scipy needed)
-# Total install size: ~80MB
+# Using sentence-transformers for free local embeddings + MongoDB via motor
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -15,9 +14,9 @@ pydantic-settings>=2.0.0
 # -----------------------------------------------------------------------------
 # HTTP & Async
 # -----------------------------------------------------------------------------
-aiohttp>=3.9.0      # Async HTTP client (used in http.py)
-aiofiles>=23.0.0    # Async file I/O (used in local.py, cached.py)
-httpx>=0.25.0       # Alternative HTTP client, useful for sync contexts
+httpx>=0.25.0               # Async HTTP client
+aiohttp>=3.9.0              # Async HTTP client (used in http.py)
+aiofiles>=23.0.0            # Async file I/O
 
 # -----------------------------------------------------------------------------
 # XML/JSON Parsing
@@ -26,20 +25,17 @@ lxml>=4.9.0
 rdflib>=7.0.0
 
 # -----------------------------------------------------------------------------
-# Database
+# Database (MongoDB)
 # -----------------------------------------------------------------------------
-sqlalchemy>=2.0.0
-aiosqlite>=0.19.0
+motor>=3.3.0                # Async MongoDB driver
+pymongo>=4.6.0              # MongoDB driver
 
 # -----------------------------------------------------------------------------
-# Vector Operations (lightweight)
+# Embeddings (local, free)
 # -----------------------------------------------------------------------------
+sentence-transformers>=2.2.0
+torch>=2.0.0
 numpy>=1.24.0
-
-# -----------------------------------------------------------------------------
-# Embeddings (Cohere API)
-# -----------------------------------------------------------------------------
-cohere>=5.0.0
 
 # -----------------------------------------------------------------------------
 # PDF Processing
@@ -51,6 +47,8 @@ pypdf>=3.0.0
 # -----------------------------------------------------------------------------
 fastapi>=0.104.0
 uvicorn[standard]>=0.24.0
+email-validator>=2.0.0
+python-multipart>=0.0.6      # File uploads
 
 # -----------------------------------------------------------------------------
 # Testing
@@ -68,9 +66,4 @@ structlog>=24.0.0
 # Development
 # -----------------------------------------------------------------------------
 black>=23.0.0
-isort>=5.12.0email-validator>=2.0.0
-chromadb>=0.4.0
-cohere>=4.0.0
-fastapi>=0.100.0
-uvicorn>=0.23.0
-email-validator>=2.0.0
+isort>=5.12.0
