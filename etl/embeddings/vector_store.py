@@ -1,17 +1,20 @@
 """
-Vector Store with ChromaDB.
+Vector Store with MongoDB Atlas.
 
-Stores embeddings and provides semantic search capabilities.
-Integrates with the Cohere embedding service for generating embeddings.
+Stores embeddings as a field on dataset documents and uses
+MongoDB Atlas $vectorSearch for semantic similarity search.
 
 Usage:
-    from etl.embeddings import CohereEmbeddingService
-    from etl.embeddings.vector_store import VectorStore
+    from etl.embeddings import SentenceTransformerService, VectorStore
+    from etl.repository import MongoDBConnection
 
-    embedding_service = CohereEmbeddingService(api_key="...")
+    conn = MongoDBConnection()
+    await conn.connect()
+
+    embedding_service = SentenceTransformerService()
     store = VectorStore(
         embedding_service=embedding_service,
-        persist_path="./data/chroma",
+        collection=conn.datasets,
     )
 
     # Add datasets
@@ -21,14 +24,12 @@ Usage:
     results = await store.search("climate change rainfall")
 """
 
-import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime
-from pathlib import Path
 from typing import Optional, Callable
 
-import chromadb
-from chromadb.config import Settings
+from motor.motor_asyncio import AsyncIOMotorCollection
+from pymongo import UpdateOne
 
 from etl.models.dataset import DatasetMetadata
 from .base import EmbeddingService
@@ -77,67 +78,37 @@ ProgressCallback = Callable[[str, int, int], None]
 
 class VectorStore:
     """
-    Vector store for semantic search using ChromaDB.
+    Vector store using MongoDB Atlas vector search.
 
-    Features:
-    - Persistent storage
-    - Semantic similarity search
-    - Batch indexing with progress tracking
-    - Metadata filtering
+    Stores embeddings as a field (`embedding: list[float]`) on the
+    dataset document itself. Uses $vectorSearch aggregation stage
+    for similarity search (requires Atlas Vector Search index).
 
     Example:
         store = VectorStore(
-            embedding_service=CohereEmbeddingService(),
-            persist_path="./data/chroma",
+            embedding_service=SentenceTransformerService(),
+            collection=conn.datasets,
         )
 
-        # Index datasets
         result = await store.add_datasets(datasets)
         print(result.summary())
 
-        # Search
         results = await store.search("drought conditions", limit=5)
         for r in results:
             print(f"{r.score:.3f} {r.title}")
     """
 
-    COLLECTION_NAME = "datasets"
+    VECTOR_INDEX_NAME = "vector_index"
 
     def __init__(
         self,
         embedding_service: EmbeddingService,
-        persist_path: str | Path = "./data/chroma",
-        batch_size: int = 96,
-        batch_delay: float = 1.0,
+        collection: AsyncIOMotorCollection,
+        batch_size: int = 32,
     ):
-        """
-        Initialize vector store.
-
-        Args:
-            embedding_service: Service for generating embeddings
-            persist_path: Path for ChromaDB storage
-            batch_size: Embeddings per API call
-            batch_delay: Delay between batches (rate limiting)
-        """
         self.embedding_service = embedding_service
-        self.persist_path = Path(persist_path)
+        self._collection = collection
         self.batch_size = batch_size
-        self.batch_delay = batch_delay
-
-        # Ensure directory exists
-        self.persist_path.mkdir(parents=True, exist_ok=True)
-
-        # Initialize ChromaDB client
-        self._client = chromadb.PersistentClient(
-            path=str(self.persist_path),
-            settings=Settings(anonymized_telemetry=False),
-        )
-
-        # Get or create collection
-        self._collection = self._client.get_or_create_collection(
-            name=self.COLLECTION_NAME,
-            metadata={"hnsw:space": "cosine"},
-        )
 
     # =========================================================================
     # Indexing
@@ -150,21 +121,17 @@ class VectorStore:
         progress_callback: Optional[ProgressCallback] = None,
     ) -> IndexingResult:
         """
-        Add datasets to the vector store.
+        Compute embeddings and store them on dataset documents.
 
         Args:
             datasets: Datasets to index
-            skip_existing: Skip already-indexed datasets
+            skip_existing: Skip datasets that already have embeddings
             progress_callback: Optional progress callback
-
-        Returns:
-            IndexingResult with success/failure details
         """
         result = IndexingResult()
 
-        # Filter existing if requested
         if skip_existing:
-            existing = set(self.get_indexed_ids())
+            existing = set(await self.get_indexed_ids())
             datasets = [d for d in datasets if d.identifier not in existing]
 
         if not datasets:
@@ -173,30 +140,23 @@ class VectorStore:
 
         total = len(datasets)
 
-        # Process in batches
         for i in range(0, len(datasets), self.batch_size):
             batch = datasets[i:i + self.batch_size]
 
             try:
-                # Prepare texts
                 texts = [self._format_text(d) for d in batch]
-
-                # Generate embeddings
                 embeddings = await self.embedding_service.embed_batch(texts)
                 result.api_calls += 1
 
-                # Store in ChromaDB
-                ids = [d.identifier for d in batch]
-                metadatas = [self._create_metadata(d) for d in batch]
+                operations = [
+                    UpdateOne(
+                        {"_id": d.identifier},
+                        {"$set": {"embedding": emb}},
+                    )
+                    for d, emb in zip(batch, embeddings)
+                ]
+                await self._collection.bulk_write(operations)
 
-                self._collection.add(
-                    ids=ids,
-                    embeddings=embeddings,
-                    metadatas=metadatas,
-                    documents=texts,
-                )
-
-                # Record successes
                 for d in batch:
                     result.successful.append(d.identifier)
                     if progress_callback:
@@ -207,32 +167,11 @@ class VectorStore:
                         )
 
             except Exception as e:
-                # Record failures
                 for d in batch:
                     result.failed.append((d.identifier, str(e)))
 
-            # Rate limiting
-            if i + self.batch_size < len(datasets):
-                await asyncio.sleep(self.batch_delay)
-
         result.completed_at = datetime.utcnow()
         return result
-
-    async def add_single(self, dataset: DatasetMetadata) -> bool:
-        """Add a single dataset. Returns True if successful."""
-        result = await self.add_datasets([dataset], skip_existing=False)
-        return len(result.successful) > 0
-
-    async def update_dataset(self, dataset: DatasetMetadata) -> bool:
-        """Update an existing dataset's embedding."""
-        try:
-            # Remove old
-            self._collection.delete(ids=[dataset.identifier])
-
-            # Add new
-            return await self.add_single(dataset)
-        except Exception:
-            return False
 
     # =========================================================================
     # Search
@@ -245,122 +184,84 @@ class VectorStore:
         min_score: float = 0.0,
     ) -> list[SearchResult]:
         """
-        Semantic search for datasets.
+        Semantic search using MongoDB Atlas $vectorSearch.
 
         Args:
             query: Search query
             limit: Maximum results
             min_score: Minimum similarity (0-1)
-
-        Returns:
-            List of SearchResult ordered by relevance
         """
-        # Generate query embedding
         query_embedding = await self.embedding_service.embed_query(query)
 
-        # Search ChromaDB
-        results = self._collection.query(
-            query_embeddings=[query_embedding],
-            n_results=limit,
-            include=["metadatas", "documents", "distances"],
-        )
+        pipeline = [
+            {
+                "$vectorSearch": {
+                    "index": self.VECTOR_INDEX_NAME,
+                    "path": "embedding",
+                    "queryVector": query_embedding,
+                    "numCandidates": limit * 10,
+                    "limit": limit,
+                }
+            },
+            {
+                "$project": {
+                    "_id": 1,
+                    "title": 1,
+                    "abstract": 1,
+                    "keywords": 1,
+                    "score": {"$meta": "vectorSearchScore"},
+                }
+            },
+        ]
 
-        # Convert to SearchResult
-        search_results = []
+        results = []
+        async for doc in self._collection.aggregate(pipeline):
+            score = doc.get("score", 0)
+            if score < min_score:
+                continue
 
-        if results["ids"] and results["ids"][0]:
-            for i, dataset_id in enumerate(results["ids"][0]):
-                # Convert distance to similarity (cosine: sim = 1 - dist)
-                distance = results["distances"][0][i] if results["distances"] else 0
-                score = 1 - distance
+            results.append(SearchResult(
+                dataset_id=str(doc["_id"]),
+                title=doc.get("title", ""),
+                abstract=doc.get("abstract", ""),
+                score=score,
+                keywords=doc.get("keywords", []) or [],
+            ))
 
-                if score < min_score:
-                    continue
-
-                metadata = results["metadatas"][0][i] if results["metadatas"] else {}
-
-                search_results.append(SearchResult(
-                    dataset_id=dataset_id,
-                    title=metadata.get("title", ""),
-                    abstract=metadata.get("abstract", ""),
-                    score=score,
-                    keywords=metadata.get("keywords", "").split(",") if metadata.get("keywords") else [],
-                ))
-
-        return search_results
-
-    async def search_with_keywords(
-        self,
-        query: str,
-        keywords: Optional[list[str]] = None,
-        limit: int = 10,
-    ) -> list[SearchResult]:
-        """
-        Search with optional keyword filtering.
-
-        Args:
-            query: Semantic search query
-            keywords: Required keywords (any match)
-            limit: Maximum results
-
-        Returns:
-            Filtered search results
-        """
-        # Get more results for filtering
-        results = await self.search(query, limit=limit * 3)
-
-        if keywords:
-            keywords_lower = {k.lower() for k in keywords}
-            results = [
-                r for r in results
-                if any(k.lower() in keywords_lower for k in r.keywords)
-            ]
-
-        return results[:limit]
+        return results
 
     # =========================================================================
     # Management
     # =========================================================================
 
-    def get_stats(self) -> dict:
+    async def get_stats(self) -> dict:
         """Get store statistics."""
+        total = await self._collection.count_documents({})
+        indexed = await self._collection.count_documents(
+            {"embedding": {"$exists": True}}
+        )
         return {
-            "total_documents": self._collection.count(),
-            "collection_name": self.COLLECTION_NAME,
-            "persist_path": str(self.persist_path),
+            "total_documents": indexed,
+            "total_datasets": total,
             "embedding_model": self.embedding_service.model_name,
             "embedding_dimensions": self.embedding_service.dimensions,
         }
 
-    def get_indexed_ids(self) -> list[str]:
-        """Get all indexed dataset IDs."""
-        result = self._collection.get()
-        return result["ids"]
+    async def get_indexed_ids(self) -> list[str]:
+        """Get all dataset IDs that have embeddings."""
+        docs = await self._collection.find(
+            {"embedding": {"$exists": True}},
+            {"_id": 1},
+        ).to_list(length=None)
+        return [str(doc["_id"]) for doc in docs]
 
-    def is_indexed(self, dataset_id: str) -> bool:
-        """Check if dataset is indexed."""
-        result = self._collection.get(ids=[dataset_id])
-        return len(result["ids"]) > 0
-
-    def delete(self, dataset_id: str) -> bool:
-        """Delete a dataset from the store."""
-        try:
-            self._collection.delete(ids=[dataset_id])
-            return True
-        except Exception:
-            return False
-
-    def clear(self) -> int:
-        """Clear all indexed data. Returns count deleted."""
-        count = self._collection.count()
-
-        self._client.delete_collection(self.COLLECTION_NAME)
-        self._collection = self._client.create_collection(
-            name=self.COLLECTION_NAME,
-            metadata={"hnsw:space": "cosine"},
+    async def clear(self) -> int:
+        """Remove all embeddings. Returns count cleared."""
+        result = await self._collection.update_many(
+            {"embedding": {"$exists": True}},
+            {"$unset": {"embedding": ""}},
         )
-
-        return count
+        return result.modified_count
 
     # =========================================================================
     # Internal
@@ -369,22 +270,11 @@ class VectorStore:
     def _format_text(self, dataset: DatasetMetadata) -> str:
         """Format dataset for embedding."""
         parts = []
-
         if dataset.title:
             parts.append(dataset.title)
-
         if dataset.abstract:
             parts.append(dataset.abstract)
-
         return "\n\n".join(parts)
-
-    def _create_metadata(self, dataset: DatasetMetadata) -> dict:
-        """Create metadata for ChromaDB."""
-        return {
-            "title": dataset.title or "",
-            "abstract": (dataset.abstract or "")[:1000],
-            "keywords": ",".join(dataset.keywords) if dataset.keywords else "",
-        }
 
 
 # =============================================================================
@@ -401,9 +291,9 @@ def create_indexing_progress() -> ProgressCallback:
         pct = current / total * 100 if total > 0 else 0
         bar_width = 30
         filled = int(bar_width * current / total)
-        bar = "█" * filled + "░" * (bar_width - filled)
+        bar = "\u2588" * filled + "\u2591" * (bar_width - filled)
 
-        line = f"\r🧠 [{bar}] {pct:5.1f}% ({current}/{total}) {dataset_id[:8]}..."
+        line = f"\r\U0001f9e0 [{bar}] {pct:5.1f}% ({current}/{total}) {dataset_id[:8]}..."
 
         padding = " " * max(0, last_len - len(line))
         print(line + padding, end="", flush=True)
