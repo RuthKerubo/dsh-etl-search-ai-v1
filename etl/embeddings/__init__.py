@@ -3,7 +3,7 @@ Embedding services for generating vector representations of text.
 """
 
 from .base import EmbeddingService
-from .cohere_service import CohereEmbeddingService
+from .sentence_transformer_service import SentenceTransformerService
 from .vector_store import (
     VectorStore,
     SearchResult,
@@ -13,7 +13,7 @@ from .vector_store import (
 
 __all__ = [
     "EmbeddingService",
-    "CohereEmbeddingService",
+    "SentenceTransformerService",
     "VectorStore",
     "SearchResult",
     "IndexingResult",
