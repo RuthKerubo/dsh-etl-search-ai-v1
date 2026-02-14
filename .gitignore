@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environments
+venv/
+.env/
+.envrc
+.env
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+
+# Virtual environments
+venv/
+create_issues.sh
+.env

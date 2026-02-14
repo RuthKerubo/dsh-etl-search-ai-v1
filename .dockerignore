@@ -1,0 +1,29 @@
+# Virtual environment
+venv/
+.venv/
+
+# Cache
+__pycache__/
+*.pyc
+.pytest_cache/
+.svelte-kit/
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+
+# Git
+.git/
+.gitignore
+
+# Environment
+.env
+.env.local
+
+# Misc
+*.log
+.DS_Store
+
+# Keep data for volume mounting
+# data/
