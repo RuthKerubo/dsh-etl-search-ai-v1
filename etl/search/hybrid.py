@@ -1,7 +1,7 @@
 """
 Hybrid Search Service.
 
-Combines semantic (vector) and keyword (SQL) search using
+Combines semantic (vector) and keyword (MongoDB) search using
 Reciprocal Rank Fusion (RRF) for result merging.
 
 Why hybrid?
@@ -10,7 +10,7 @@ Why hybrid?
 - Hybrid: Best of both worlds
 
 Design:
-- Auto-detects query type (short → more keyword weight)
+- Auto-detects query type (short -> more keyword weight)
 - Uses RRF for merging (no score normalization needed)
 - Exact matches get boosted to top
 """
@@ -77,18 +77,6 @@ class HybridSearchService:
     - RRF (Reciprocal Rank Fusion) for merging
     - Exact match boosting
     - No user configuration needed
-
-    Example:
-        service = HybridSearchService(
-            vector_store=store,
-            repository=repository,
-        )
-
-        # Just search - it figures out the best approach
-        response = await service.search("drought UK")
-
-        # Or search for exact ID
-        response = await service.search("f710bed1-e564-47bf-b82c-4c2a2fe2810e")
     """
 
     # RRF constant (standard value from literature)
@@ -108,16 +96,6 @@ class HybridSearchService:
         keyword_weight: float = 1.0,
         exact_match_boost: float = 10.0,
     ):
-        """
-        Initialize hybrid search.
-
-        Args:
-            vector_store: Vector store for semantic search
-            repository: Repository for keyword search
-            semantic_weight: Weight for semantic results in RRF
-            keyword_weight: Weight for keyword results in RRF
-            exact_match_boost: Score boost for exact ID/title matches
-        """
         self.vector_store = vector_store
         self.repository = repository
         self.semantic_weight = semantic_weight
@@ -131,18 +109,7 @@ class HybridSearchService:
         semantic_limit: int = 50,
         keyword_limit: int = 50,
     ) -> HybridSearchResponse:
-        """
-        Perform hybrid search.
-
-        Args:
-            query: Search query
-            limit: Final results to return
-            semantic_limit: Max results from semantic search
-            keyword_limit: Max results from keyword search
-
-        Returns:
-            HybridSearchResponse with merged results
-        """
+        """Perform hybrid search."""
         query = query.strip()
         query_type = self._detect_query_type(query)
 
@@ -162,12 +129,17 @@ class HybridSearchService:
         if query_type == QueryType.SHORT:
             keyword_w *= 1.5  # Boost keyword for short queries
 
-        # Run both searches in parallel
+        # Run both searches
         import asyncio
-        semantic_task = self.vector_store.search(query, limit=semantic_limit)
-        keyword_results = self.repository.search(query, limit=keyword_limit)
+        semantic_task = asyncio.create_task(
+            self.vector_store.search(query, limit=semantic_limit)
+        )
+        keyword_task = asyncio.create_task(
+            self.repository.search(query, limit=keyword_limit)
+        )
 
         semantic_results = await semantic_task
+        keyword_results = await keyword_task
 
         # Merge using RRF
         merged = self._merge_rrf(
@@ -193,16 +165,13 @@ class HybridSearchService:
 
     def _detect_query_type(self, query: str) -> QueryType:
         """Detect the type of query for optimal handling."""
-        # Check for UUID
         if self.UUID_PATTERN.match(query):
             return QueryType.EXACT_ID
 
-        # Check for quoted exact match
         if (query.startswith('"') and query.endswith('"')) or \
            (query.startswith("'") and query.endswith("'")):
             return QueryType.EXACT_TITLE
 
-        # Check for short query (1-2 words)
         words = query.split()
         if len(words) <= 2:
             return QueryType.SHORT
@@ -211,7 +180,7 @@ class HybridSearchService:
 
     async def _exact_id_search(self, dataset_id: str) -> HybridSearchResponse:
         """Handle exact ID lookup."""
-        dataset = self.repository.get(dataset_id)
+        dataset = await self.repository.get(dataset_id)
 
         if dataset:
             result = HybridSearchResult(
@@ -241,8 +210,7 @@ class HybridSearchService:
         limit: int,
     ) -> HybridSearchResponse:
         """Handle exact title search."""
-        # Use keyword search with exact query
-        results = self.repository.search(title, limit=limit)
+        results = await self.repository.search(title, limit=limit)
 
         hybrid_results = []
         for i, dataset in enumerate(results):
@@ -274,14 +242,7 @@ class HybridSearchService:
         semantic_weight: float,
         keyword_weight: float,
     ) -> list[HybridSearchResult]:
-        """
-        Merge results using Reciprocal Rank Fusion.
-
-        RRF score = Σ (weight / (k + rank))
-
-        This is rank-based, so no score normalization needed.
-        """
-        # Build score map
+        """Merge results using Reciprocal Rank Fusion."""
         scores: dict[str, HybridSearchResult] = {}
 
         # Process semantic results
@@ -336,16 +297,12 @@ class HybridSearchService:
         query_lower = query.lower()
 
         for result in results:
-            # Exact title match
             if result.title and query_lower == result.title.lower():
                 result.hybrid_score += self.exact_match_boost
                 result.is_exact_match = True
-
-            # Title contains exact query
             elif result.title and query_lower in result.title.lower():
                 result.hybrid_score += self.exact_match_boost * 0.5
 
-            # Exact keyword match
             if any(query_lower == kw.lower() for kw in result.keywords):
                 result.hybrid_score += self.exact_match_boost * 0.3
 
@@ -376,61 +333,13 @@ class HybridSearchService:
             for i, r in enumerate(results)
         ]
 
-    def search_keyword_only(
+    async def search_keyword_only(
         self,
         query: str,
         limit: int = 10,
     ) -> list[HybridSearchResult]:
-        """Search using only keyword/SQL search."""
-        results = self.repository.search(query, limit=limit)
-
-        return [
-            HybridSearchResult(
-                dataset_id=d.identifier,
-                title=d.title or "",
-                abstract=d.abstract or "",
-                hybrid_score=1.0 / (i + 1),  # Simple rank-based score
-                keyword_rank=i + 1,
-                from_keyword=True,
-                keywords=d.keywords,
-            )
-            for i, d in enumerate(results)
-        ]
-
-    async def search_by_organisation(
-        self,
-        organisation: str,
-        query: Optional[str] = None,
-        limit: int = 10,
-    ) -> list[HybridSearchResult]:
-        """
-        Search for datasets from a specific organisation.
-
-        Optionally combine with a semantic query.
-        """
-        # This would need a repository method to filter by organisation
-        # For now, use keyword search on organisation name
-        org_results = self.repository.search(organisation, limit=limit * 2)
-
-        if query:
-            # Also run semantic search and merge
-            semantic_results = await self.vector_store.search(query, limit=limit)
-
-            # Filter semantic results to only those from this org
-            org_ids = {d.identifier for d in org_results}
-            filtered_semantic = [r for r in semantic_results if r.dataset_id in org_ids]
-
-            return [
-                HybridSearchResult(
-                    dataset_id=r.dataset_id,
-                    title=r.title,
-                    abstract=r.abstract,
-                    hybrid_score=r.score,
-                    from_semantic=True,
-                    keywords=r.keywords,
-                )
-                for r in filtered_semantic[:limit]
-            ]
+        """Search using only keyword/MongoDB search."""
+        results = await self.repository.search(query, limit=limit)
 
         return [
             HybridSearchResult(
@@ -442,7 +351,7 @@ class HybridSearchService:
                 from_keyword=True,
                 keywords=d.keywords,
             )
-            for i, d in enumerate(org_results[:limit])
+            for i, d in enumerate(results)
         ]
 
 
@@ -456,12 +365,7 @@ async def hybrid_search(
     repository: DatasetRepository,
     limit: int = 10,
 ) -> list[HybridSearchResult]:
-    """
-    Simple function interface for hybrid search.
-
-    Example:
-        results = await hybrid_search("drought data UK", store, repo)
-    """
+    """Simple function interface for hybrid search."""
     service = HybridSearchService(vector_store, repository)
     response = await service.search(query, limit=limit)
     return response.results
