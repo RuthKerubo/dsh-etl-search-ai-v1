@@ -1,0 +1,104 @@
+{
+  "datasets": [
+    {
+      "identifier": "diverse-env-0001",
+      "title": "North Sea Marine Habitat Classification Survey 2019-2023",
+      "abstract": "Seabed habitat survey data from the UK sector of the North Sea collected using multibeam sonar, grab sampling, and drop-down camera systems. Habitats classified according to the EUNIS marine habitat classification scheme. Covers priority habitats including Annex I reef and sandbank features relevant to Marine Protected Area management.",
+      "keywords": ["marine habitats", "North Sea", "seabed mapping", "EUNIS", "multibeam sonar", "Marine Protected Areas"],
+      "topic_categories": ["oceans", "biota"],
+      "lineage": "Multibeam bathymetry and backscatter data acquired from survey vessels. Grab samples analysed for sediment particle size and infauna. Habitat classification based on combined acoustic and biological evidence following JNCC guidelines.",
+      "bounding_box": {"west": -2.0, "east": 3.0, "south": 51.0, "north": 56.0},
+      "temporal_extent": {"start": "2019-01-01", "end": "2023-12-31"}
+    },
+    {
+      "identifier": "diverse-env-0002",
+      "title": "UK Peatland Carbon Flux Measurements 2018-2023",
+      "abstract": "Eddy covariance measurements of CO2, methane, and water vapour fluxes from 12 peatland sites across the UK. Sites span a gradient from near-natural blanket bog to heavily degraded and actively restored peatlands. Provides continuous half-hourly flux data for carbon budget estimation and restoration impact assessment.",
+      "keywords": ["peatlands", "carbon flux", "eddy covariance", "methane", "bog restoration", "carbon budget"],
+      "topic_categories": ["climatologyMeteorologyAtmosphere", "environment"],
+      "lineage": "Measurements made using LI-7200 enclosed-path CO2/H2O analyser and LI-7700 open-path CH4 analyser at each site. Data processed using EddyPro software with standard quality filtering. Gap-filling applied using marginal distribution sampling.",
+      "bounding_box": {"west": -7.5, "east": -0.5, "south": 51.5, "north": 58.5},
+      "temporal_extent": {"start": "2018-01-01", "end": "2023-12-31"}
+    },
+    {
+      "identifier": "diverse-env-0003",
+      "title": "National River Flow Archive - Daily Mean Flows",
+      "abstract": "Daily mean river flow data from the UK National River Flow Archive covering over 1500 gauging stations. Records span from the 1880s to present for the longest-running stations. Data quality coded and suitable for hydrological analysis including flood frequency estimation, low flow statistics, and trend detection.",
+      "keywords": ["river flow", "discharge", "hydrology", "gauging stations", "flood", "drought"],
+      "topic_categories": ["inlandWaters"],
+      "lineage": "Flow data derived from water level measurements at gauging stations operated by Environment Agency, SEPA, NRW, and DfI Rivers. Stage-discharge relationships maintained by measuring authorities. Data quality reviewed and archived by NRFA.",
+      "bounding_box": {"west": -8.2, "east": 1.8, "south": 49.9, "north": 60.9},
+      "temporal_extent": {"start": "1883-01-01", "end": "2023-12-31"}
+    },
+    {
+      "identifier": "diverse-env-0004",
+      "title": "Countryside Survey Vegetation Plot Data 1978-2019",
+      "abstract": "Detailed vegetation survey data from permanent plots across Great Britain recorded as part of the Countryside Survey programme. Includes species-level plant records from 600 1km sample squares with nested plot designs in different habitat types. Supports analysis of vegetation change, habitat condition, and plant diversity trends over four decades.",
+      "keywords": ["vegetation", "plant diversity", "countryside survey", "habitat change", "long-term monitoring", "permanent plots"],
+      "topic_categories": ["biota", "environment"],
+      "lineage": "Vegetation surveys conducted by trained field ecologists using standardised Countryside Survey protocols. All vascular plants, bryophytes, and lichens recorded in nested quadrats (2m x 2m within 200m2 plots). Survey years: 1978, 1990, 1998, 2007, 2019.",
+      "bounding_box": {"west": -8.2, "east": 1.8, "south": 49.9, "north": 60.9},
+      "temporal_extent": {"start": "1978-01-01", "end": "2019-12-31"}
+    },
+    {
+      "identifier": "diverse-env-0005",
+      "title": "UK Air Quality Monitoring Network - Hourly Pollutant Concentrations",
+      "abstract": "Hourly measurements of key air pollutants from the UK Automatic Urban and Rural Network (AURN). Pollutants include nitrogen dioxide, particulate matter (PM2.5 and PM10), ozone, and sulphur dioxide. Over 170 monitoring sites classified by environment type (urban background, roadside, rural) providing data for air quality assessment and health impact studies.",
+      "keywords": ["air quality", "nitrogen dioxide", "particulate matter", "PM2.5", "ozone", "pollution monitoring"],
+      "topic_categories": ["climatologyMeteorologyAtmosphere", "health"],
+      "lineage": "Measurements made using reference-equivalent analysers operated to EN standards. Data ratified quarterly by Ricardo Energy and Environment under contract to Defra. Quality assurance includes site audits, inter-calibration exercises, and automated data screening.",
+      "bounding_box": {"west": -8.2, "east": 1.8, "south": 49.9, "north": 60.9},
+      "temporal_extent": {"start": "1992-01-01", "end": "2023-12-31"}
+    },
+    {
+      "identifier": "diverse-env-0006",
+      "title": "Scottish Freshwater Pearl Mussel Population Survey 2015-2022",
+      "abstract": "Population surveys of the endangered freshwater pearl mussel (Margaritifera margaritifera) across 45 Scottish river systems. Survey data includes abundance estimates, size-class distributions, juvenile recruitment indicators, and habitat condition assessments. Supports conservation status reporting under the EU Habitats Directive.",
+      "keywords": ["freshwater pearl mussel", "Margaritifera", "endangered species", "conservation", "rivers", "Scotland"],
+      "topic_categories": ["biota", "inlandWaters"],
+      "lineage": "Surveys conducted by licensed surveyors using standardised snorkel-based methods in approved survey windows (June-September). Population estimates derived from systematic quadrat counts. Size-class data from measured individuals. All surveys conducted under appropriate SNH licences.",
+      "bounding_box": {"west": -7.5, "east": -1.5, "south": 55.5, "north": 58.7},
+      "temporal_extent": {"start": "2015-06-01", "end": "2022-09-30"}
+    },
+    {
+      "identifier": "diverse-env-0007",
+      "title": "COSMOS-UK Soil Moisture Monitoring Network",
+      "abstract": "Continuous soil moisture measurements from the COSMOS-UK network of 51 stations across the UK. Uses cosmic-ray neutron sensing technology to measure field-scale soil moisture at approximately hourly intervals. Additional measurements include soil temperature profiles, meteorological variables, and soil heat flux. Data supports drought monitoring, flood forecasting, and land surface model validation.",
+      "keywords": ["soil moisture", "cosmic-ray sensing", "COSMOS", "drought", "monitoring network", "hydrology"],
+      "topic_categories": ["geoscientificInformation", "climatologyMeteorologyAtmosphere"],
+      "lineage": "Soil moisture derived from cosmic-ray neutron intensity measurements corrected for atmospheric pressure, humidity, and incoming neutron flux. Calibrated against gravimetric soil samples at each site. Data quality controlled with automated range checks and manual review.",
+      "bounding_box": {"west": -5.7, "east": 1.8, "south": 50.0, "north": 55.8},
+      "temporal_extent": {"start": "2013-01-01", "end": "2023-12-31"}
+    },
+    {
+      "identifier": "diverse-env-0008",
+      "title": "Butterfly Monitoring Scheme Transect Data 1976-2023",
+      "abstract": "Weekly butterfly transect count data from over 2500 sites across the UK collected by the UK Butterfly Monitoring Scheme. Standardised Pollard walk methodology with fixed-route transects walked weekly during the flight season (April-September). Species-level abundance data used to derive population indices and assess conservation status of UK butterfly species.",
+      "keywords": ["butterflies", "Lepidoptera", "population monitoring", "transect counts", "citizen science", "biodiversity indicators"],
+      "topic_categories": ["biota"],
+      "lineage": "Data collected by trained volunteer recorders following standardised Pollard walk methodology. Transects walked weekly in suitable weather conditions (13C+, wind below force 5, no rain). Site indices calculated using GAM models to account for missing weeks. National indices derived using log-linear Poisson regression.",
+      "bounding_box": {"west": -8.2, "east": 1.8, "south": 49.9, "north": 60.9},
+      "temporal_extent": {"start": "1976-04-01", "end": "2023-09-30"}
+    },
+    {
+      "identifier": "diverse-env-0009",
+      "title": "UK Groundwater Level Monitoring Data 2000-2023",
+      "abstract": "Groundwater level observations from over 300 observation boreholes across principal and secondary aquifers in England and Wales. Includes daily, weekly, and monthly dip data depending on site instrumentation. Key aquifers covered include Chalk, Permo-Triassic sandstone, Jurassic limestone, and Lower Greensand. Essential for drought assessment, water resource planning, and climate change impact studies.",
+      "keywords": ["groundwater", "water table", "aquifer", "borehole", "Chalk", "water resources"],
+      "topic_categories": ["inlandWaters", "geoscientificInformation"],
+      "lineage": "Water levels measured by pressure transducers (continuous sites) or manual dipping (monthly sites). All levels referenced to Ordnance Datum. Data quality assured by BGS including automated screening for logger drift and manual verification of datum connections.",
+      "bounding_box": {"west": -5.7, "east": 1.8, "south": 50.0, "north": 55.8},
+      "temporal_extent": {"start": "2000-01-01", "end": "2023-12-31"}
+    },
+    {
+      "identifier": "diverse-env-0010",
+      "title": "Invasive Non-Native Species Records for Great Britain",
+      "abstract": "Distribution records of invasive non-native species across Great Britain compiled from multiple sources including biological recording schemes, survey programmes, and citizen science platforms. Covers key invasive species including Japanese knotweed, Himalayan balsam, signal crayfish, grey squirrel, and American mink. Records include location, date, recorder, and verification status.",
+      "keywords": ["invasive species", "non-native species", "biological records", "biosecurity", "distribution mapping", "species records"],
+      "topic_categories": ["biota", "environment"],
+      "lineage": "Records compiled from the National Biodiversity Network, iRecord citizen science platform, and targeted survey programmes. Records verified by national recording scheme experts. Spatial accuracy recorded at 100m, 1km, or 10km resolution depending on source.",
+      "bounding_box": {"west": -8.2, "east": 1.8, "south": 49.9, "north": 60.9},
+      "temporal_extent": {"start": "1990-01-01", "end": "2023-12-31"}
+    }
+  ]
+}

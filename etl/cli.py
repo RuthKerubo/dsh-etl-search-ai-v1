@@ -3,11 +3,12 @@
 DSH ETL Search AI - Command Line Interface
 
 Usage:
-    python -m etl.cli init                    # Create MongoDB indexes
-    python -m etl.cli run                     # Run ETL pipeline (fetch, parse, store)
-    python -m etl.cli embed                   # Generate embeddings
-    python -m etl.cli status                  # Show current status
-    python -m etl.cli search "query"          # Test search
+    python -m etl.cli init                                    # Create MongoDB indexes
+    python -m etl.cli run                                     # Run ETL pipeline (fetch, parse, store)
+    python -m etl.cli embed                                   # Generate embeddings
+    python -m etl.cli status                                  # Show current status
+    python -m etl.cli search "query"                          # Test search
+    python -m etl.cli bulk-import <filepath> --source <name>  # Bulk import datasets
 """
 
 import asyncio
@@ -222,6 +223,38 @@ def cmd_status():
     asyncio.run(run())
 
 
+def cmd_bulk_import(filepath: str, source: str, fmt: str = "json"):
+    """Bulk import datasets from a file."""
+    from etl.bulk_import import BulkImporter
+
+    importer = BulkImporter()
+
+    print(f"Importing from {filepath}...")
+
+    if fmt == 'csv' or filepath.endswith('.csv'):
+        result = importer.import_from_csv(filepath, source)
+    else:
+        result = importer.import_from_json(filepath, source)
+
+    print(f"\nImport Results:")
+    print(f"   Source: {result['source']}")
+    print(f"   Total: {result['total']}")
+    print(f"   Imported: {result['imported']}")
+    print(f"   Skipped: {result['skipped']}")
+    if result['errors']:
+        print(f"   Errors: {len(result['errors'])}")
+        for err in result['errors'][:5]:
+            print(f"     - Index {err['index']}: {err['error']}")
+
+    stats = importer.get_stats()
+    print(f"\nDatabase Stats:")
+    print(f"   Total datasets: {stats['total_datasets']}")
+    for src, count in stats['by_source'].items():
+        print(f"   - {src}: {count}")
+
+    importer.close()
+
+
 def cmd_search(query: str):
     """Test search functionality."""
     from etl.repository import MongoDBConnection, DatasetRepository
@@ -315,7 +348,8 @@ Examples:
   python -m etl.cli run                     Run ETL pipeline
   python -m etl.cli embed                   Generate embeddings
   python -m etl.cli status                  Show status
-  python -m etl.cli search "climate data"  Test search
+  python -m etl.cli search "climate data"                   Test search
+  python -m etl.cli bulk-import data/sample_datasets.json -s samples  Bulk import
         """,
     )
 
@@ -338,6 +372,13 @@ Examples:
     # status
     subparsers.add_parser("status", help="Show current status")
 
+    # bulk-import
+    bulk_parser = subparsers.add_parser("bulk-import", help="Bulk import datasets from file")
+    bulk_parser.add_argument("filepath", help="Path to JSON or CSV file")
+    bulk_parser.add_argument("--source", "-s", required=True, help="Source name")
+    bulk_parser.add_argument("--format", "-f", choices=["json", "csv"], default="json",
+                             help="File format (auto-detected from extension)")
+
     # search
     search_parser = subparsers.add_parser("search", help="Test search")
     search_parser.add_argument("query", help="Search query")
@@ -352,6 +393,8 @@ Examples:
         cmd_embed()
     elif args.command == "status":
         cmd_status()
+    elif args.command == "bulk-import":
+        cmd_bulk_import(args.filepath, args.source, args.format)
     elif args.command == "search":
         cmd_search(args.query)
     else:

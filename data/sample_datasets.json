@@ -1,0 +1,84 @@
+{
+  "datasets": [
+    {
+      "identifier": "env-sample-0001",
+      "title": "UK River Water Quality Monitoring Data 2015-2023",
+      "abstract": "Comprehensive water quality measurements from over 500 monitoring stations across UK river systems. Includes dissolved oxygen, pH, nitrate, phosphate, and biological oxygen demand readings collected at monthly intervals. Data supports compliance monitoring under the Water Framework Directive.",
+      "keywords": ["water quality", "rivers", "dissolved oxygen", "nutrients", "monitoring", "Water Framework Directive"],
+      "topic_categories": ["inlandWaters", "environment"],
+      "lineage": "Data collected by Environment Agency field teams using standardised sampling protocols. Laboratory analysis conducted at accredited facilities. Quality assured through automated range checks and manual review.",
+      "bounding_box": {"west": -5.7, "east": 1.8, "south": 50.0, "north": 55.8},
+      "temporal_extent": {"start": "2015-01-01", "end": "2023-12-31"}
+    },
+    {
+      "identifier": "env-sample-0002",
+      "title": "National Land Cover Map 2022",
+      "abstract": "High-resolution land cover classification for Great Britain derived from satellite imagery and ground survey data. Twenty-one land cover classes mapped at 25m resolution including broadleaf woodland, coniferous woodland, arable, improved grassland, and urban areas. Based on Sentinel-2 imagery with field validation.",
+      "keywords": ["land cover", "remote sensing", "Sentinel-2", "habitat mapping", "land use"],
+      "topic_categories": ["imageryBaseMapsEarthCover", "environment"],
+      "lineage": "Classification performed using random forest algorithm trained on field survey points. Accuracy assessment based on independent validation dataset achieving 88% overall accuracy.",
+      "bounding_box": {"west": -8.2, "east": 1.8, "south": 49.9, "north": 60.9},
+      "temporal_extent": {"start": "2022-03-01", "end": "2022-10-31"}
+    },
+    {
+      "identifier": "env-sample-0003",
+      "title": "Atmospheric CO2 Concentrations at Weybourne Observatory 2010-2023",
+      "abstract": "Continuous measurements of atmospheric carbon dioxide concentrations at the Weybourne Atmospheric Observatory, Norfolk, UK. High-precision cavity ring-down spectroscopy measurements at 1-minute resolution. Includes meteorological variables for source attribution analysis.",
+      "keywords": ["carbon dioxide", "greenhouse gas", "atmospheric monitoring", "climate change", "Weybourne"],
+      "topic_categories": ["climatologyMeteorologyAtmosphere"],
+      "lineage": "Measurements made using Picarro G2301 analyser calibrated against WMO reference gases. Data quality controlled following ICOS atmospheric station protocols.",
+      "bounding_box": {"west": 1.12, "east": 1.13, "south": 52.94, "north": 52.96},
+      "temporal_extent": {"start": "2010-01-01", "end": "2023-12-31"}
+    },
+    {
+      "identifier": "env-sample-0004",
+      "title": "UK Soil Organic Carbon Stock Estimates 2020",
+      "abstract": "Modelled estimates of soil organic carbon stocks for England and Wales at 1km resolution. Derived from the National Soil Inventory sample data combined with environmental covariates using digital soil mapping techniques. Reports carbon stocks in the top 30cm and top 100cm of soil.",
+      "keywords": ["soil carbon", "organic matter", "carbon stocks", "digital soil mapping", "soil inventory"],
+      "topic_categories": ["geoscientificInformation", "environment"],
+      "lineage": "Spatial predictions generated using machine learning models trained on 5600 National Soil Inventory sampling points. Environmental covariates include terrain, climate, land cover, and geology layers.",
+      "bounding_box": {"west": -5.7, "east": 1.8, "south": 50.0, "north": 55.8},
+      "temporal_extent": {"start": "2020-01-01", "end": "2020-12-31"}
+    },
+    {
+      "identifier": "env-sample-0005",
+      "title": "Breeding Bird Survey Population Trends 1994-2022",
+      "abstract": "Population trend indices for 117 common breeding bird species across the UK derived from the BTO/JNCC/RSPB Breeding Bird Survey. Volunteer surveyors conduct standardised transect counts at over 3000 randomly selected 1km squares each year. Trends estimated using generalised additive models.",
+      "keywords": ["birds", "population trends", "breeding birds", "biodiversity", "citizen science", "survey"],
+      "topic_categories": ["biota"],
+      "lineage": "Data collected by trained volunteer surveyors following standardised BBS methodology. Two visits per breeding season. Trend analysis uses GAM models accounting for observer effects and survey effort.",
+      "bounding_box": {"west": -8.2, "east": 1.8, "south": 49.9, "north": 60.9},
+      "temporal_extent": {"start": "1994-01-01", "end": "2022-12-31"}
+    },
+    {
+      "identifier": "env-sample-0006",
+      "title": "UK Lakes Water Chemistry Database 2000-2023",
+      "abstract": "Water chemistry data from over 200 UK lakes sampled as part of the UK Upland Waters Monitoring Network and other national programmes. Parameters include pH, alkalinity, dissolved organic carbon, major ions, and trace metals. Supports assessment of recovery from acidification and nutrient enrichment trends.",
+      "keywords": ["lakes", "water chemistry", "acidification", "dissolved organic carbon", "upland waters"],
+      "topic_categories": ["inlandWaters", "environment"],
+      "lineage": "Samples collected quarterly from lake outflows or mid-lake sampling points. Analysis performed at CEH Lancaster analytical chemistry laboratory following accredited methods.",
+      "bounding_box": {"west": -8.2, "east": 1.8, "south": 49.9, "north": 60.9},
+      "temporal_extent": {"start": "2000-01-01", "end": "2023-12-31"}
+    },
+    {
+      "identifier": "env-sample-0007",
+      "title": "Pollinator Abundance and Diversity Survey Data 2017-2022",
+      "abstract": "Systematic pollinator survey data from 120 sites across England covering bumblebees, solitary bees, and hoverflies. Standardised pan trap and transect walk sampling conducted monthly during the flight season April-September. Includes species identifications, abundance counts, and habitat characterisation at each site.",
+      "keywords": ["pollinators", "bees", "hoverflies", "biodiversity", "insect decline", "pollination"],
+      "topic_categories": ["biota", "farming"],
+      "lineage": "Surveys conducted by trained entomologists. Pan traps deployed for 24-hour periods at standardised heights. Transect walks of 200m in suitable weather conditions. Specimens identified to species level by specialist taxonomists.",
+      "bounding_box": {"west": -5.7, "east": 1.8, "south": 50.0, "north": 55.8},
+      "temporal_extent": {"start": "2017-04-01", "end": "2022-09-30"}
+    },
+    {
+      "identifier": "env-sample-0008",
+      "title": "CHESS-SCAPE Future Climate Projections for the UK",
+      "abstract": "High-resolution (1km) climate projection data for the UK derived from UKCP18 regional climate model outputs. Variables include daily precipitation, minimum and maximum temperature, specific humidity, and radiation. Covers four Representative Concentration Pathways (RCP2.6, RCP4.5, RCP6.0, RCP8.5) for the period 2020-2080.",
+      "keywords": ["climate projections", "UKCP18", "temperature", "precipitation", "climate change", "RCP scenarios"],
+      "topic_categories": ["climatologyMeteorologyAtmosphere"],
+      "lineage": "Derived from UKCP18 12km regional climate model data using statistical downscaling and bias correction against CHESS-met observed climate grids. Methodology published in peer-reviewed literature.",
+      "bounding_box": {"west": -8.2, "east": 1.8, "south": 49.9, "north": 60.9},
+      "temporal_extent": {"start": "2020-01-01", "end": "2080-12-31"}
+    }
+  ]
+}

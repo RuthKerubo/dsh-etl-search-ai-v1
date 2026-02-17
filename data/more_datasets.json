@@ -1,0 +1,41 @@
+[
+  {
+    "identifier": "uk-air-quality-001",
+    "title": "UK Urban Air Quality Monitoring Network 2020-2024",
+    "abstract": "Hourly measurements of PM2.5, PM10, NO2, O3, and SO2 from 150 monitoring stations across UK urban areas. Data includes meteorological context and health advisory indices.",
+    "keywords": ["air quality", "pollution", "urban", "PM2.5", "NO2", "health"],
+    "topic_categories": ["climatologyMeteorologyAtmosphere", "health"],
+    "lineage": "Collected by DEFRA Air Quality monitoring network",
+    "bbox_west": -8.0, "bbox_east": 2.0, "bbox_north": 60.0, "bbox_south": 50.0,
+    "temporal_start": "2020-01-01", "temporal_end": "2024-12-31"
+  },
+  {
+    "identifier": "uk-soil-carbon-001",
+    "title": "UK Soil Organic Carbon Stock Assessment 2022",
+    "abstract": "National assessment of soil organic carbon stocks at 1km resolution across England, Wales, and Scotland. Includes depth profiles to 1 meter and land use classification.",
+    "keywords": ["soil", "carbon", "climate", "land use", "agriculture"],
+    "topic_categories": ["geoscientificInformation", "environment"],
+    "lineage": "Derived from Countryside Survey and UKCEH soil sampling"
+  },
+  {
+    "identifier": "uk-flood-risk-001",
+    "title": "UK Flood Risk Assessment Maps 2021",
+    "abstract": "Probabilistic flood risk maps for fluvial and coastal flooding across the UK. Includes 1-in-100 and 1-in-1000 year return period scenarios.",
+    "keywords": ["flood", "risk", "coastal", "river", "climate change"],
+    "topic_categories": ["inlandWaters", "environment"]
+  },
+  {
+    "identifier": "uk-woodland-001",
+    "title": "National Forest Inventory Great Britain 2020",
+    "abstract": "Comprehensive woodland cover map and statistics for Great Britain including species composition, age structure, and management status.",
+    "keywords": ["forest", "woodland", "trees", "biodiversity", "carbon"],
+    "topic_categories": ["biota", "environment"]
+  },
+  {
+    "identifier": "uk-marine-001",
+    "title": "UK Marine Protected Areas Monitoring Data 2019-2023",
+    "abstract": "Ecological monitoring data from 50 Marine Conservation Zones including species counts, habitat assessments, and water quality measurements.",
+    "keywords": ["marine", "conservation", "biodiversity", "ocean", "protected areas"],
+    "topic_categories": ["oceans", "biota"]
+  }
+]
