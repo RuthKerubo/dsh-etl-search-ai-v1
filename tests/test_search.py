@@ -31,8 +31,8 @@ def mock_vector_store():
 def mock_repository():
     """Mock dataset repository."""
     repo = Mock()
-    repo.search = Mock(return_value=[])
-    repo.get = Mock(return_value=None)
+    repo.search = AsyncMock(return_value=[])
+    repo.get = AsyncMock(return_value=None)
     return repo
 
 
