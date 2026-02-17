@@ -27,6 +27,15 @@ class DatasetListResponse(BaseModel):
     total_pages: int
 
 
+class ComplianceInfo(BaseModel):
+    """ISO 19115 compliance check result."""
+    compliant: bool
+    score: int
+    missing_required: list[str] = []
+    missing_recommended: list[str] = []
+    warnings: list[str] = []
+
+
 class DatasetResponse(BaseModel):
     """Full dataset details."""
     identifier: str
@@ -37,6 +46,7 @@ class DatasetResponse(BaseModel):
     topic_categories: list[str] = []
     bounding_box: Optional[dict] = None
     temporal_extent: Optional[dict] = None
+    iso_compliance: Optional[ComplianceInfo] = None
 
 
 # =============================================================================

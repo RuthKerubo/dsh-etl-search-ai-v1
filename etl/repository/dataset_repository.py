@@ -21,7 +21,7 @@ class DatasetRepository:
     Async MongoDB repository for dataset metadata.
 
     Stores datasets as flat BSON documents. Uses the dataset
-    `identifier` as the MongoDB `_id` field.
+    `identifier` field for lookups and upserts.
     """
 
     def __init__(self, collection: AsyncIOMotorCollection):
@@ -33,7 +33,7 @@ class DatasetRepository:
 
     async def get(self, identifier: str, **kwargs) -> Optional[DatasetMetadata]:
         """Retrieve a dataset by identifier."""
-        doc = await self._collection.find_one({"_id": identifier})
+        doc = await self._collection.find_one({"identifier": identifier})
         if doc is None:
             return None
         return self._doc_to_domain(doc)
@@ -51,11 +51,11 @@ class DatasetRepository:
 
         Only loads fields needed for embeddings: identifier, title, abstract.
         """
-        projection = {"_id": 1, "title": 1, "abstract": 1}
+        projection = {"identifier": 1, "title": 1, "abstract": 1}
         docs = await self._collection.find({}, projection).to_list(length=None)
         return [
             DatasetMetadata(
-                identifier=str(doc["_id"]),
+                identifier=doc["identifier"],
                 title=doc.get("title", ""),
                 abstract=doc.get("abstract", ""),
                 keywords=[],
@@ -93,7 +93,7 @@ class DatasetRepository:
         """Save a dataset (insert or update)."""
         doc = self._domain_to_doc(entity)
         await self._collection.replace_one(
-            {"_id": entity.identifier},
+            {"identifier": entity.identifier},
             doc,
             upsert=True,
         )
@@ -101,13 +101,13 @@ class DatasetRepository:
 
     async def delete(self, identifier: str) -> bool:
         """Delete a dataset by identifier."""
-        result = await self._collection.delete_one({"_id": identifier})
+        result = await self._collection.delete_one({"identifier": identifier})
         return result.deleted_count > 0
 
     async def exists(self, identifier: str) -> bool:
         """Check if a dataset exists."""
         count = await self._collection.count_documents(
-            {"_id": identifier}, limit=1
+            {"identifier": identifier}, limit=1
         )
         return count > 0
 
@@ -139,9 +139,9 @@ class DatasetRepository:
     async def get_all_identifiers(self) -> list[str]:
         """Get all dataset identifiers (efficient)."""
         docs = await self._collection.find(
-            {}, {"_id": 1}
+            {}, {"identifier": 1}
         ).to_list(length=None)
-        return [str(doc["_id"]) for doc in docs]
+        return [doc["identifier"] for doc in docs]
 
     # =========================================================================
     # Bulk Operations
@@ -160,7 +160,7 @@ class DatasetRepository:
                 doc = self._domain_to_doc(entity)
                 operations.append(
                     ReplaceOne(
-                        {"_id": entity.identifier},
+                        {"identifier": entity.identifier},
                         doc,
                         upsert=True,
                     )
@@ -194,8 +194,6 @@ class DatasetRepository:
     def _domain_to_doc(entity: DatasetMetadata) -> dict:
         """Convert Pydantic model to MongoDB document."""
         doc = entity.model_dump(mode="json", exclude_none=True)
-        # Use identifier as _id
-        doc["_id"] = doc.pop("identifier")
         # Remove raw_document from storage (large, not needed for search)
         doc.pop("raw_document", None)
         doc.pop("source_format", None)
@@ -205,8 +203,7 @@ class DatasetRepository:
     def _doc_to_domain(doc: dict) -> DatasetMetadata:
         """Convert MongoDB document to Pydantic model."""
         data = dict(doc)
-        # Map _id back to identifier
-        data["identifier"] = str(data.pop("_id"))
-        # Remove embedding field (not part of domain model)
+        # Remove MongoDB _id and embedding (not part of domain model)
+        data.pop("_id", None)
         data.pop("embedding", None)
         return DatasetMetadata.model_validate(data)

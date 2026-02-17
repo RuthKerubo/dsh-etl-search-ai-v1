@@ -15,6 +15,7 @@ from fastapi import Depends
 from etl.embeddings.vector_store import VectorStore
 from etl.repository.dataset_repository import DatasetRepository
 from etl.repository.mongodb import MongoDBConnection, MongoDBConfig
+from etl.repository.user_repository_mongo import UserRepositoryMongo
 from etl.search.hybrid import HybridSearchService
 
 # Will be set during app lifespan
@@ -23,6 +24,7 @@ _vector_store: Optional[VectorStore] = None
 _embedding_service = None
 _hybrid_search: Optional[HybridSearchService] = None
 _dataset_repo: Optional[DatasetRepository] = None
+_user_repo: Optional[UserRepositoryMongo] = None
 
 
 # =============================================================================
@@ -35,7 +37,7 @@ async def init_dependencies():
 
     Called once during app startup via lifespan.
     """
-    global _mongo_conn, _vector_store, _embedding_service, _hybrid_search, _dataset_repo
+    global _mongo_conn, _vector_store, _embedding_service, _hybrid_search, _dataset_repo, _user_repo
 
     # MongoDB connection
     config = MongoDBConfig(
@@ -50,6 +52,9 @@ async def init_dependencies():
 
     # Dataset repository
     _dataset_repo = DatasetRepository(_mongo_conn.datasets)
+
+    # User repository
+    _user_repo = UserRepositoryMongo(_mongo_conn.users)
 
     # Embedding service (local, free)
     try:
@@ -85,12 +90,13 @@ async def shutdown_dependencies():
 
     Called during app shutdown via lifespan.
     """
-    global _mongo_conn, _vector_store, _embedding_service, _hybrid_search, _dataset_repo
+    global _mongo_conn, _vector_store, _embedding_service, _hybrid_search, _dataset_repo, _user_repo
 
     _hybrid_search = None
     _vector_store = None
     _embedding_service = None
     _dataset_repo = None
+    _user_repo = None
 
     if _mongo_conn:
         await _mongo_conn.close()
@@ -123,11 +129,32 @@ def get_hybrid_search() -> Optional[HybridSearchService]:
     return _hybrid_search
 
 
+def get_user_repository() -> UserRepositoryMongo:
+    """Get user repository instance."""
+    if _user_repo is None:
+        raise RuntimeError("Database not initialized")
+    return _user_repo
+
+
 def get_mongo_connection() -> MongoDBConnection:
     """Get MongoDB connection instance."""
     if _mongo_conn is None:
         raise RuntimeError("Database not initialized")
     return _mongo_conn
+
+
+def get_datasets_collection():
+    """Get the raw MongoDB datasets collection (for RAG pipeline)."""
+    if _mongo_conn is None:
+        raise RuntimeError("Database not initialized")
+    return _mongo_conn.datasets
+
+
+def get_embedding_model():
+    """Get the underlying SentenceTransformer model (for RAG pipeline)."""
+    if _embedding_service is None:
+        return None
+    return _embedding_service._model
 
 
 # =============================================================================
@@ -167,3 +194,4 @@ async def get_service_status() -> dict:
 DatasetRepoDep = Annotated[DatasetRepository, Depends(get_dataset_repository)]
 VectorStoreDep = Annotated[Optional[VectorStore], Depends(get_vector_store)]
 HybridSearchDep = Annotated[Optional[HybridSearchService], Depends(get_hybrid_search)]
+UserRepoDep = Annotated[UserRepositoryMongo, Depends(get_user_repository)]

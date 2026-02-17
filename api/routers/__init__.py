@@ -1,2 +1,2 @@
 """API Routers."""
-from . import health, datasets, search, upload, rag
+from . import health, datasets, search, upload, rag, auth, admin

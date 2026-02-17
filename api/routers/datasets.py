@@ -7,8 +7,8 @@ GET /datasets/{id} - Get single dataset.
 
 from fastapi import APIRouter, HTTPException, Query
 
-from api.dependencies import DatasetRepoDep
-from api.schemas.responses import DatasetResponse, DatasetListResponse, DatasetListItem
+from api.dependencies import DatasetRepoDep, get_mongo_connection
+from api.schemas.responses import ComplianceInfo, DatasetResponse, DatasetListResponse, DatasetListItem
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
 
@@ -52,6 +52,15 @@ async def get_dataset(
     if dataset is None:
         raise HTTPException(status_code=404, detail="Dataset not found")
 
+    # Fetch iso_compliance from MongoDB (not part of DatasetMetadata domain model)
+    compliance_info = None
+    conn = get_mongo_connection()
+    raw_doc = await conn.datasets.find_one(
+        {"identifier": identifier}, {"iso_compliance": 1}
+    )
+    if raw_doc and raw_doc.get("iso_compliance"):
+        compliance_info = ComplianceInfo(**raw_doc["iso_compliance"])
+
     return DatasetResponse(
         identifier=dataset.identifier,
         title=dataset.title or "",
@@ -69,4 +78,5 @@ async def get_dataset(
             "start": str(dataset.temporal_extent.start_date) if dataset.temporal_extent and dataset.temporal_extent.start_date else None,
             "end": str(dataset.temporal_extent.end_date) if dataset.temporal_extent and dataset.temporal_extent.end_date else None,
         } if dataset.temporal_extent else None,
+        iso_compliance=compliance_info,
     )

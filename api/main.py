@@ -17,7 +17,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.dependencies import init_dependencies, shutdown_dependencies, get_service_status
-from api.routers import health, datasets, search, upload, rag
+from api.routers import health, datasets, search, upload, rag, auth, admin
 
 
 # =============================================================================
@@ -102,6 +102,8 @@ app.include_router(datasets.router, prefix="/api")
 app.include_router(search.router, prefix="/api")
 app.include_router(upload.router, prefix="/api")
 app.include_router(rag.router, prefix="/api")
+app.include_router(auth.router, prefix="/api")
+app.include_router(admin.router, prefix="/api")
 
 
 # =============================================================================

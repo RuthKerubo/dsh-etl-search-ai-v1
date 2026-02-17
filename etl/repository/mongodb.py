@@ -82,6 +82,11 @@ class MongoDBConnection:
         return self.db["users"]
 
     @property
+    def pending(self) -> AsyncIOMotorCollection:
+        """The pending uploads collection."""
+        return self.db["pending"]
+
+    @property
     def search_history(self) -> AsyncIOMotorCollection:
         """The search_history collection."""
         return self.db["search_history"]
@@ -98,6 +103,10 @@ class MongoDBConnection:
 
         # Users
         await self.users.create_index("email", unique=True)
+
+        # Pending uploads
+        await self.pending.create_index("uploaded_at")
+        await self.pending.create_index("uploaded_by")
 
         # Search history
         await self.search_history.create_index("searched_at")
