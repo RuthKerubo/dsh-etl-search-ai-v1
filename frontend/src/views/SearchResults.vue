@@ -43,17 +43,25 @@ function newSearch() {
     router.push({ path: '/search', query: { q: searchQuery.value.trim() } })
   }
 }
+
+// Score → green shade: high score = dark green, low = light
+function scoreBadgeClass(score) {
+  if (score >= 0.75) return 'bg-green-100 text-green-800'
+  if (score >= 0.45) return 'bg-emerald-50 text-emerald-700'
+  return 'bg-gray-100 text-gray-500'
+}
 </script>
 
 <template>
   <div class="max-w-4xl mx-auto px-4 py-6">
 
     <!-- Search bar -->
-    <form @submit.prevent="newSearch" class="flex mb-5 shadow-sm rounded-xl overflow-hidden border border-gray-200">
+    <form @submit.prevent="newSearch"
+      class="flex mb-5 shadow-sm rounded-xl overflow-hidden border border-green-200">
       <input v-model="searchQuery" type="text" placeholder="Search datasets..."
         class="flex-1 px-4 py-3 text-sm border-0 focus:ring-0 focus:outline-none bg-white" />
       <button type="submit"
-        class="bg-indigo-600 text-white px-5 py-3 text-sm font-medium hover:bg-indigo-700 transition-colors shrink-0">
+        class="bg-green-600 text-white px-5 py-3 text-sm font-medium hover:bg-green-700 transition-colors shrink-0">
         Search
       </button>
     </form>
@@ -77,15 +85,14 @@ function newSearch() {
       <div class="flex items-center justify-between mb-4 text-sm text-gray-500">
         <span>
           <span class="font-semibold text-gray-800">{{ meta.total }}</span> results
-          for "<span class="text-indigo-600">{{ route.query.q }}</span>"
+          for "<span class="text-green-700">{{ route.query.q }}</span>"
         </span>
         <div class="flex items-center gap-2">
-          <!-- Mode badge -->
           <span class="px-2 py-0.5 rounded-full text-xs font-medium"
             :class="{
-              'bg-violet-100 text-violet-700': meta.mode === 'hybrid',
-              'bg-indigo-100 text-indigo-700': meta.mode === 'semantic',
-              'bg-gray-100 text-gray-600':     meta.mode === 'keyword',
+              'bg-green-100 text-green-700':   meta.mode === 'hybrid',
+              'bg-emerald-100 text-emerald-700': meta.mode === 'semantic',
+              'bg-gray-100 text-gray-600':       meta.mode === 'keyword',
             }">
             {{ meta.mode }}
           </span>
@@ -105,15 +112,16 @@ function newSearch() {
       <!-- Results -->
       <div v-else class="space-y-3">
         <RouterLink v-for="r in results" :key="r.identifier" :to="`/datasets/${r.identifier}`"
-          class="block bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all group">
+          class="block bg-white rounded-xl border border-green-100 p-4 shadow-sm hover:shadow-md hover:border-green-300 transition-all group">
 
           <!-- Title row -->
           <div class="flex items-start justify-between gap-3 mb-2">
-            <h2 class="text-base font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors leading-snug">
+            <h2
+              class="text-base font-semibold text-emerald-900 group-hover:text-green-700 transition-colors leading-snug">
               {{ r.title }}
             </h2>
-            <!-- Score pill -->
-            <span class="shrink-0 text-xs font-mono px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600">
+            <!-- Score pill — shade varies with score -->
+            <span class="shrink-0 text-xs font-mono px-2 py-0.5 rounded-full" :class="scoreBadgeClass(r.score)">
               {{ (r.score * 100).toFixed(1) }}%
             </span>
           </div>
@@ -121,17 +129,16 @@ function newSearch() {
           <!-- Abstract -->
           <p class="text-sm text-gray-600 line-clamp-2 mb-3">{{ r.abstract }}</p>
 
-          <!-- Footer: source tags + search-mode badges -->
+          <!-- Footer -->
           <div class="flex flex-wrap items-center gap-2">
-            <!-- Keywords -->
             <span v-for="kw in r.keywords.slice(0, 4)" :key="kw"
-              class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full">{{ kw }}</span>
+              class="px-2 py-0.5 bg-green-50 text-green-700 text-xs rounded-full">{{ kw }}</span>
 
             <span class="flex-1" />
 
-            <!-- Search source badges -->
+            <!-- Semantic badge -->
             <span v-if="r.from_semantic"
-              class="flex items-center gap-1 px-2 py-0.5 bg-violet-50 text-violet-600 text-xs rounded-full font-medium">
+              class="flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">
               <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9 9a2 2 0 114 0 2 2 0 01-4 0z" />
                 <path fill-rule="evenodd" clip-rule="evenodd"
@@ -139,8 +146,9 @@ function newSearch() {
               </svg>
               semantic
             </span>
+            <!-- Keyword badge -->
             <span v-if="r.from_keyword"
-              class="flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded-full font-medium">
+              class="flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-600 text-xs rounded-full font-medium">
               <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
