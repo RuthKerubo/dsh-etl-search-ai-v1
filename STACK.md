@@ -20,7 +20,7 @@ MongoDB was chosen because:
 - Co-location of metadata and embeddings
 - Reduced infrastructure complexity
 
-This avoids maintaining a separate vector database (e.g., FAISS or Pinecone).
+This avoids maintaining a separate vector database (e.g., Chroma or Pinecone).
 
 ---
 
@@ -43,7 +43,7 @@ Chosen for:
 
 - Lightweight reactive architecture
 - Simplicity for moderate UI complexity
-- Clear separation of views and state management (Pinia)
+- Clear separation of views and state management
 
 The frontend is intentionally minimal and functional.
 
