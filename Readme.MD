@@ -1,44 +1,69 @@
-# DSH ETL Search AI
+# DSH Environmental Dataset Search
 
-A semantic search application for environmental datasets from the UK Centre for Ecology & Hydrology (UKCEH).
+**Live Demo**: https://dsh-etl-search.duckdns.org
+
+## Overview
+
+AI-powered search platform for UK environmental datasets from the UKCEH Environmental Data Centre. Combines hybrid semantic + keyword search, RAG Q&A, and ISO 19115 metadata compliance.
 
 ## Features
 
-- **ETL Pipeline**: Fetches and parses 200+ environmental datasets from CEH catalogue
-- **Hybrid Search**: Combines semantic (AI embeddings) + keyword search
-- **FastAPI Backend**: RESTful API with automatic fallback
-- **SvelteKit Frontend**: Modern, fast, reactive UI
-- **ChromaDB**: Vector store for semantic search
-- **Cohere Embeddings**: AI-powered text understanding
+- **Hybrid Search** - Combines vector embeddings + keyword matching via Reciprocal Rank Fusion
+- **RAG Q&A** - Ask questions about datasets, get answers with source citations
+- **ISO 19115 Compliance** - Metadata validation and scoring
+- **Document Upload** - PDF extraction with auto-metadata generation (admin only)
+- **User Roles** - Admin and Researcher access levels with JWT auth
+
+## Tech Stack
+
+### Backend
+- FastAPI, Python 3.10
+- Motor (async MongoDB driver)
+- sentence-transformers/all-MiniLM-L6-v2 (384-dimension embeddings)
+- PyJWT for authentication
+
+### Frontend
+- Vue 3, Vue Router, Pinia
+- Tailwind CSS
+
+### Database
+- MongoDB Atlas with $vectorSearch index
+
+### Deployment
+- Docker, Docker Compose
+- Linode, Nginx, Let's Encrypt SSL
 
 ## Architecture
+
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    SvelteKit Frontend                        │
-│                    http://localhost:5173                     │
-│                                                              │
-│  - Search page with instant results                          │
-│  - Dataset browser with pagination                           │
-│  - Dataset detail view                                       │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      FastAPI Backend                         │
-│                    http://localhost:8000                     │
-│                                                              │
-│  GET /health          - Service status                       │
-│  GET /api/datasets    - List datasets (paginated)            │
-│  GET /api/datasets/id - Single dataset                       │
-│  GET /api/search?q=   - Hybrid search                        │
-└─────────────────────────────────────────────────────────────┘
-                              │
-              ┌───────────────┼───────────────┐
-              ▼               ▼               ▼
-      ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
-      │   SQLite    │ │  ChromaDB   │ │  Cohere API │
-      │  (metadata) │ │ (vectors)   │ │ (embeddings)│
-      └─────────────┘ └─────────────┘ └─────────────┘
+┌──────────────────────────────────────────────────────┐
+│              Vue 3 Frontend                          │
+│         https://dsh-etl-search.duckdns.org          │
+│                                                      │
+│  Home · Search · Dataset Detail · Chat (RAG)         │
+│  Login · Register · Admin Portal                     │
+└──────────────────────────┬───────────────────────────┘
+                           │ HTTPS
+                           ▼
+┌──────────────────────────────────────────────────────┐
+│              FastAPI Backend (:8000)                 │
+│                                                      │
+│  /api/auth        JWT authentication                 │
+│  /api/search      Hybrid search (RRF fusion)         │
+│  /api/datasets    Dataset CRUD                       │
+│  /api/rag         RAG Q&A pipeline                   │
+│  /api/admin       Upload & moderation (admin only)   │
+└──────┬───────────────────────────┬───────────────────┘
+       │                           │
+       ▼                           ▼
+┌─────────────────┐     ┌──────────────────────────┐
+│  MongoDB Atlas  │     │  sentence-transformers   │
+│                 │     │  all-MiniLM-L6-v2        │
+│  datasets       │     │  384-dimension vectors   │
+│  + embeddings   │     │  (runs locally, no API)  │
+│  users          │     └──────────────────────────┘
+│  $vectorSearch  │
+└─────────────────┘
 ```
 
 ## Quick Start
@@ -46,178 +71,125 @@ A semantic search application for environmental datasets from the UK Centre for 
 ### Prerequisites
 
 - Python 3.10+
-- Node.js 18+ (for frontend)
-- Cohere API key (free at https://cohere.com)
+- Node.js 18+
+- MongoDB Atlas account with a cluster
+- Docker (for deployment)
 
-### Installation
+### Local Development
+
 ```bash
 # Clone repository
-git clone https://github.com/RuthKerubo/dsh-etl-search-ai-2025.git
-cd dsh-etl-search-ai-2025
+git clone https://github.com/RuthKerubo/dsh-etl-search-ai-v1.git
+cd dsh-etl-search-ai-v1
 
-# Create virtual environment
-python3 -m venv venv
+# Backend
+python -m venv venv
 source venv/bin/activate
-
-# Install Python dependencies
 pip install -r requirements.txt
+cp .env.example .env
+# Edit .env and add your MONGODB_URI and JWT_SECRET
+uvicorn api.main:app --reload
 
-# Install frontend dependencies
+# Frontend (separate terminal)
 cd frontend
 npm install
-cd ..
-
-# Configure environment
-cp .env.example .env
-# Edit .env and add your COHERE_API_KEY
+npm run dev
 ```
 
-### Run ETL Pipeline
-```bash
-# Initialize database
-python -m etl.cli init
+- Backend API docs: http://localhost:8000/docs
+- Frontend: http://localhost:5173
 
-# Fetch and store datasets (3-5 minutes)
+### Docker Deployment
+
+```bash
+cp .env.example .env
+# Edit .env with your MONGODB_URI and JWT_SECRET
+./deploy.sh
+```
+
+## ETL Pipeline
+
+```bash
+# Fetch and store datasets from UKCEH catalogue
 python -m etl.cli run
 
-# Generate embeddings (requires COHERE_API_KEY)
+# Generate embeddings (stores in MongoDB)
 python -m etl.cli embed
 
 # Check status
 python -m etl.cli status
+
+# Test search
+python -m etl.cli search "rainfall river catchment"
 ```
 
-### Start Development Servers
-```bash
-# Terminal 1: Backend
-uvicorn api.main:app --reload
+## API Endpoints
 
-# Terminal 2: Frontend
-cd frontend
-npm run dev
-```
-
-- **Backend**: http://localhost:8000/docs
-- **Frontend**: http://localhost:5173
-
-### Using Docker (Recommended)
-```bash
-# Start everything
-docker-compose up
-
-# Or run in background
-docker-compose up -d
-```
-
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8000
-
-## API Usage
-
-### Health Check
-```bash
-curl http://localhost:8000/health
-```
-
-### Search Datasets
-```bash
-# Hybrid search (semantic + keyword)
-curl "http://localhost:8000/api/search?q=climate%20change"
-
-# Force keyword-only
-curl "http://localhost:8000/api/search?q=river&mode=keyword"
-```
-
-### List Datasets
-```bash
-curl "http://localhost:8000/api/datasets?page=1&page_size=10"
-```
-
-### Get Single Dataset
-```bash
-curl "http://localhost:8000/api/datasets/{identifier}"
-```
-
-## Project Structure
-```
-dsh-etl-search-ai-2025/
-├── api/                    # FastAPI application
-│   ├── main.py             # App entry point
-│   ├── dependencies.py     # Dependency injection
-│   ├── routers/            # API routes
-│   └── schemas/            # Pydantic models
-├── etl/                    # ETL pipeline
-│   ├── cli.py              # Command-line interface
-│   ├── client/             # CEH API client
-│   ├── embeddings/         # Cohere + ChromaDB
-│   ├── models/             # Domain models
-│   ├── parsers/            # JSON/XML parsers
-│   ├── pipeline/           # ETL orchestration
-│   ├── repository/         # Database access
-│   └── search/             # Hybrid search
-├── frontend/               # SvelteKit application
-│   ├── src/
-│   │   ├── routes/         # Pages
-│   │   ├── lib/            # Components & utilities
-│   │   └── app.html        # HTML template
-│   ├── package.json
-│   └── svelte.config.js
-├── data/                   # Data storage
-│   ├── metadata.db         # SQLite database
-│   ├── chroma/             # Vector store
-│   └── cache/              # API response cache
-├── tests/                  # Test suite
-├── Dockerfile
-├── docker-compose.yml
-└── requirements.txt
-```
-
-## CLI Commands
-
-| Command | Description |
-|---------|-------------|
-| `python -m etl.cli init` | Create database tables |
-| `python -m etl.cli run` | Fetch and store datasets |
-| `python -m etl.cli embed` | Generate embeddings |
-| `python -m etl.cli status` | Show current status |
-| `python -m etl.cli search "query"` | Test search |
+| Endpoint | Method | Description | Auth |
+|----------|--------|-------------|------|
+| `/health` | GET | Health check | None |
+| `/api/auth/register` | POST | Register user | None |
+| `/api/auth/login` | POST | Login, returns JWT | None |
+| `/api/search` | GET | Hybrid search (`?q=`) | Optional |
+| `/api/datasets` | GET | List datasets (paginated) | None |
+| `/api/datasets/{id}` | GET | Dataset detail | None |
+| `/api/rag` | POST | RAG Q&A with citations | Researcher+ |
+| `/api/admin/upload` | POST | Upload PDF dataset | Admin |
+| `/api/admin/pending` | GET | List pending uploads | Admin |
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DATABASE_PATH` | SQLite database path | `data/metadata.db` |
-| `CHROMA_PATH` | ChromaDB storage path | `data/chroma` |
-| `COHERE_API_KEY` | Cohere API key | Required for embeddings |
-| `CACHE_DIR` | API cache directory | `data/cache` |
-| `PUBLIC_API_URL` | Backend URL for frontend | `http://localhost:8000` |
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `MONGODB_URI` | MongoDB Atlas connection string | Yes |
+| `MONGODB_DATABASE` | Database name | Yes (default: `dsh_etl_search`) |
+| `JWT_SECRET` | Secret key for JWT signing | Yes |
+| `CACHE_DIR` | API response cache directory | No (default: `data/cache`) |
+| `EMBEDDING_MODEL` | Sentence transformer model | No (default: `all-MiniLM-L6-v2`) |
 
-## Search Modes
+## Project Structure
 
-The search endpoint automatically selects the best mode:
+```
+dsh-etl-search-ai-v1/
+├── api/                        # FastAPI application
+│   ├── main.py                 # App entry point
+│   ├── dependencies.py         # Dependency injection
+│   ├── auth/                   # JWT auth service
+│   ├── routers/                # Route handlers
+│   │   ├── auth.py
+│   │   ├── search.py
+│   │   ├── datasets.py
+│   │   ├── rag.py
+│   │   ├── admin.py
+│   │   └── upload.py
+│   └── schemas/                # Pydantic request/response models
+├── etl/                        # ETL pipeline
+│   ├── cli.py                  # CLI commands
+│   ├── client/                 # UKCEH API client
+│   ├── embeddings/             # sentence-transformers service
+│   ├── extraction/             # PDF metadata extraction
+│   ├── models/                 # Domain models (Dataset, User)
+│   ├── parsers/                # JSON/XML parsers
+│   ├── pipeline/               # ETL orchestration
+│   ├── rag/                    # RAG pipeline (retriever, context, generator)
+│   └── repository/             # MongoDB data access
+├── frontend/                   # Vue 3 application
+│   └── src/
+│       ├── views/              # Pages (Home, Search, Chat, Admin, etc.)
+│       ├── stores/             # Pinia state (auth)
+│       ├── router.js
+│       └── api.js
+├── tests/                      # Test suite
+├── Dockerfile
+├── docker-compose.yml
+├── deploy.sh
+└── requirements.txt
+```
 
-- **Hybrid** (default): Combines semantic + keyword using Reciprocal Rank Fusion
-- **Keyword-only**: Falls back when embeddings unavailable or rate-limited
-- **Semantic-only**: Force with `?mode=semantic`
+## Data Sources
 
-## Tech Stack
-
-### Backend
-- FastAPI
-- SQLAlchemy
-- Pydantic
-- SQLite
-- ChromaDB
-- Cohere API
-
-### Frontend
-- SvelteKit
-- TailwindCSS
-- TypeScript
-
-### DevOps
-- Docker
-- Docker Compose
+- **UKCEH Environmental Data Centre** - 200+ environmental datasets (automated ETL)
+- **Admin uploads** - PDF documents processed via the admin portal
 
 ## License
 
@@ -225,4 +197,4 @@ MIT
 
 ## Author
 
-Ruth Kerubo - RSE Coding Task 2025
+Ruth Kerubo — [GitHub](https://github.com/RuthKerubo)
