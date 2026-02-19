@@ -1,83 +1,81 @@
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { RouterLink, RouterView } from 'vue-router'
+import { useAuthStore } from './stores/auth.js'
 
-const router = useRouter()
-const searchQuery = ref('')
-
-function handleSearch() {
-  if (searchQuery.value.trim()) {
-    router.push({ path: '/search', query: { q: searchQuery.value.trim() } })
-  }
-}
+const auth = useAuthStore()
 </script>
 
 <template>
-  <div class="max-w-4xl mx-auto px-4 py-16">
-    
-    <!-- Header -->
-    <div class="text-center mb-12">
-      <h1 class="text-3xl font-bold text-emerald-900 mb-4">
-        Environmental Dataset Search
-      </h1>
-      <p class="text-gray-600 max-w-2xl mx-auto">
-        Search 200+ UK environmental datasets from the UKCEH Environmental Data Centre. 
-        The platform combines keyword matching with semantic similarity to find relevant records.
-      </p>
-    </div>
+  <div class="min-h-screen flex flex-col bg-green-50">
+    <nav class="bg-white border-b border-green-100 sticky top-0 z-10">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16 items-center">
 
-    <!-- Search Box -->
-    <div class="max-w-xl mx-auto mb-16">
-      <form @submit.prevent="handleSearch" class="flex gap-2">
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Search datasets..."
-          class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-        />
-        <button
-          type="submit"
-          class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-        >
-          Search
-        </button>
-      </form>
-      
-      <!-- Example queries -->
-      <div class="mt-4 text-sm text-gray-500">
-        <span>Try: </span>
-        <button @click="searchQuery = 'climate change'; handleSearch()" class="text-green-700 hover:underline">climate change</button>,
-        <button @click="searchQuery = 'river water quality'; handleSearch()" class="text-green-700 hover:underline ml-1">river water quality</button>,
-        <button @click="searchQuery = 'soil carbon'; handleSearch()" class="text-green-700 hover:underline ml-1">soil carbon</button>
-      </div>
-    </div>
+          <!-- Logo + nav links -->
+          <div class="flex items-center gap-6">
+            <RouterLink to="/" class="text-emerald-900 font-bold text-lg shrink-0">
+              DSH Search
+            </RouterLink>
+            <div class="hidden sm:flex items-center gap-5">
+              <RouterLink to="/" 
+                class="text-sm font-medium text-gray-500 hover:text-emerald-700 transition-colors"
+                active-class="text-green-600">
+                Search
+              </RouterLink>
+              <RouterLink v-if="auth.isLoggedIn" to="/chat"
+                class="text-sm font-medium text-gray-500 hover:text-emerald-700 transition-colors"
+                active-class="text-green-600">
+                Chat
+              </RouterLink>
+              <RouterLink to="/about"
+                class="text-sm font-medium text-gray-500 hover:text-emerald-700 transition-colors"
+                active-class="text-green-600">
+                About
+              </RouterLink>
+              <RouterLink v-if="auth.isAdmin" to="/admin"
+                class="text-sm font-medium text-gray-500 hover:text-emerald-700 transition-colors"
+                active-class="text-green-600">
+                Admin
+              </RouterLink>
+            </div>
+          </div>
 
-    <!-- Brief Description -->
-    <div class="grid md:grid-cols-3 gap-6 text-sm">
-      <div class="bg-white p-5 rounded-lg border border-gray-200">
-        <h3 class="font-semibold text-emerald-900 mb-2">Hybrid Search</h3>
-        <p class="text-gray-600">
-          Combines keyword matching with vector similarity search. 
-          Results are merged using Reciprocal Rank Fusion.
-        </p>
+          <!-- Auth section -->
+          <div class="flex items-center gap-4">
+            <template v-if="auth.isLoggedIn">
+              <div class="hidden sm:flex flex-col items-end leading-tight">
+                <span class="text-sm text-gray-700 truncate max-w-[180px]">{{ auth.user?.email }}</span>
+                <span class="text-xs font-semibold px-1.5 py-0.5 rounded mt-0.5"
+                  :class="auth.isAdmin ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'">
+                  {{ auth.isAdmin ? 'Admin' : 'Researcher' }}
+                </span>
+              </div>
+              <button @click="auth.logout(); $router.push('/')"
+                class="text-sm text-gray-400 hover:text-red-600 transition-colors">
+                Logout
+              </button>
+            </template>
+            <template v-else>
+              <RouterLink to="/login"
+                class="text-sm font-medium text-green-700 hover:text-green-900 transition-colors">
+                Login
+              </RouterLink>
+              <RouterLink to="/register"
+                class="text-sm bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 transition-colors font-medium">
+                Register
+              </RouterLink>
+            </template>
+          </div>
+        </div>
       </div>
-      
-      <div class="bg-white p-5 rounded-lg border border-gray-200">
-        <h3 class="font-semibold text-emerald-900 mb-2">ISO 19115 Metadata</h3>
-        <p class="text-gray-600">
-          Dataset records follow the ISO 19115 geographic metadata standard 
-          for interoperability with other catalogues.
-        </p>
-      </div>
-      
-      <div class="bg-white p-5 rounded-lg border border-gray-200">
-        <h3 class="font-semibold text-emerald-900 mb-2">UKCEH Data</h3>
-        <p class="text-gray-600">
-          Metadata sourced from the UK Centre for Ecology & Hydrology 
-          Environmental Data Centre catalogue.
-        </p>
-      </div>
-    </div>
+    </nav>
 
+    <main class="flex-1">
+      <RouterView />
+    </main>
+
+    <footer class="bg-white border-t border-green-100 py-4 text-center text-xs text-gray-400">
+      DSH Environmental Dataset Search · ISO 19115 Compliant · Powered by UKCEH data
+    </footer>
   </div>
 </template>
