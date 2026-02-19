@@ -25,6 +25,13 @@ from pydantic import (
 # Enumerations
 # =============================================================================
 
+class AccessLevel(str, Enum):
+    """Access level controlling dataset visibility by user role."""
+    PUBLIC = "public"
+    RESTRICTED = "restricted"
+    ADMIN_ONLY = "admin_only"
+
+
 class ResponsiblePartyRole(str, Enum):
     """
     Roles for responsible parties as defined in ISO 19115.
@@ -572,6 +579,14 @@ class DatasetMetadata(BaseModel):
     supporting_documents: list[SupportingDocument] = Field(
         default_factory=list,
         description="Associated documentation files"
+    )
+
+    # -------------------------------------------------------------------------
+    # Access Control
+    # -------------------------------------------------------------------------
+    access_level: AccessLevel = Field(
+        default=AccessLevel.PUBLIC,
+        description="Access level controlling dataset visibility by user role",
     )
 
     # -------------------------------------------------------------------------

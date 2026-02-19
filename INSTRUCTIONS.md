@@ -1,31 +1,45 @@
-# How to Run This Project
+# Running the Project
 
-## Option 1: Docker (Easiest - 2 Commands)
+## Docker
 ```bash
-# 1. Build
-docker build -t dsh-etl-search .
-
-# 2. Run
+docker-compose up --build
 ```
 
-**Test it:** http://localhost:8000/docs
+Access the API at http://localhost:8000/docs
 
 ---
 
-## Option 2: Python (3 Commands)
-```bash
-# 1. Setup
-python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt
+## Local Development
 
-# 3. Run
+### Backend
+```bash
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+cp .env.example .env
+# Set MONGODB_URI and JWT_SECRET
+
 uvicorn api.main:app --reload
 ```
 
-**Test it:** http://localhost:8000/docs
+### Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
 ---
 
-## Try These
+## Testing
+```bash
+pytest tests/
+```
+
+---
+
+## API Examples
 ```bash
 # Health check
 curl http://localhost:8000/health
@@ -33,18 +47,16 @@ curl http://localhost:8000/health
 # Search
 curl "http://localhost:8000/api/search?q=climate"
 
-# Browse datasets
-curl "http://localhost:8000/api/datasets?page=1&page_size=5"
+# Dataset detail
+curl "http://localhost:8000/api/datasets/{identifier}"
 ```
 
 ---
 
-## What It Does
+## Environment Variables
 
-- **200 environmental datasets** from UK Centre for Ecology & Hydrology
-- **Hybrid search** combining AI (semantic) + keyword matching
-- **REST API** with automatic documentation at `/docs`
-
----
-
-*Ruth Kerubo - RSE Coding Task 2025*
+| Variable | Description |
+|----------|-------------|
+| `MONGODB_URI` | MongoDB Atlas connection string |
+| `JWT_SECRET` | Secret key for JWT signing |
+| `DEBUG` | Enable debug mode (optional) |

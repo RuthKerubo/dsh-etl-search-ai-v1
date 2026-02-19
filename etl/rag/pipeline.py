@@ -1,10 +1,11 @@
 """Main RAG Pipeline"""
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from .context_builder import build_context
 from .generator import generate_answer
 from .retriever import DatasetRetriever
+from etl.guardrails import DataGuardrails, RAGGuardrails
 
 
 class RAGPipeline:
@@ -17,8 +18,9 @@ class RAGPipeline:
         top_k: int = 5,
         min_relevance: float = 0.3,
         use_llm: bool = True,
+        user_role: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Full RAG pipeline."""
+        """Full RAG pipeline with access control and PII guardrails."""
 
         # 1. Retrieve
         retrieved = await self.retriever.retrieve(
@@ -26,6 +28,9 @@ class RAGPipeline:
             top_k=top_k,
             min_score=min_relevance,
         )
+
+        # 2. Filter by access level
+        retrieved = RAGGuardrails.filter_context_by_access(retrieved, user_role)
 
         if not retrieved:
             return {
@@ -36,10 +41,10 @@ class RAGPipeline:
                 "model": None,
             }
 
-        # 2. Build context
+        # 3. Build context
         context = build_context(retrieved)
 
-        # 3. Generate
+        # 4. Generate
         if use_llm:
             generation = await generate_answer(question, context)
         else:
@@ -48,6 +53,10 @@ class RAGPipeline:
                 "model": "fallback",
                 "generated": False,
             }
+
+        # 5. Redact PII from answer
+        validated = RAGGuardrails.validate_response(generation["answer"], user_role)
+        generation["answer"] = validated["response"]
 
         return {
             "question": question,

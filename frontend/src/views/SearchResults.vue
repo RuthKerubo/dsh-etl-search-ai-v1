@@ -155,6 +155,15 @@ function scoreBadgeClass(score) {
               </svg>
               keyword
             </span>
+            <!-- Access level badge (only shown for non-public datasets) -->
+            <span v-if="r.access_level && r.access_level !== 'public'"
+              class="px-2 py-0.5 text-xs rounded-full font-medium"
+              :class="{
+                'bg-amber-100 text-amber-700': r.access_level === 'restricted',
+                'bg-red-100 text-red-700': r.access_level === 'admin_only',
+              }">
+              {{ r.access_level === 'restricted' ? 'Restricted' : 'Admin Only' }}
+            </span>
           </div>
         </RouterLink>
       </div>

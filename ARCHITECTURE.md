@@ -1,126 +1,91 @@
 # Architecture
 
-## System Overview
+## Overview
 
-The platform follows a modular architecture:
+The platform has four main components:
 
-- Vue 3 frontend (client interface)
-- FastAPI backend (API + retrieval logic)
-- MongoDB Atlas (metadata + vector storage)
-- ETL pipeline (standalone ingestion module)
+- **Frontend** — Vue 3 single-page application
+- **Backend** — FastAPI REST API
+- **Database** — MongoDB Atlas with vector search
+- **ETL** — Standalone ingestion pipeline
 
-The system separates ingestion, retrieval, and presentation layers.
-
----
-
-## Retrieval Architecture
-
-The platform implements a hybrid retrieval approach combining:
-
-1. Lexical keyword search
-2. Dense vector similarity search
-
-Each method retrieves and ranks results independently.
-
-These rankings are then combined using Reciprocal Rank Fusion (RRF).
+These are loosely coupled. The ETL pipeline populates the database independently of the API.
 
 ---
 
-## Reciprocal Rank Fusion (RRF)
+## Search
 
-Reciprocal Rank Fusion aggregates multiple ranked result lists without requiring score normalization.
+The search system combines two retrieval methods:
 
-For each retrieval system:
+1. **Keyword search** — MongoDB text index on title and abstract
+2. **Vector search** — Cosine similarity over 384-dimensional embeddings
 
-- Results are independently ranked.
-- A score is assigned based on rank position.
+Results from both methods are merged using Reciprocal Rank Fusion (RRF).
 
-The RRF score is defined as:
+### Reciprocal Rank Fusion
 
-RRF_score = Σ (1 / (k + rank_i))
+RRF combines ranked lists without requiring score normalisation:
+```
+RRF_score(d) = Σ 1/(k + rank_i(d))
+```
 
-Where:
+Where `k` is a smoothing constant (default 60) and `rank_i(d)` is the rank of document `d` in retrieval method `i`.
 
-- rank_i = rank position in retrieval method i
-- k = smoothing constant (commonly 60)
-
-### Why RRF?
-
-RRF was selected because:
-
-- It does not require similarity score normalization.
-- It is robust to score distribution differences.
-- It improves stability when one retrieval method underperforms.
-- It is computationally inexpensive.
-
-This approach improves recall compared to lexical search alone and improves precision compared to embedding-only search.
+This approach is robust when one method underperforms and avoids issues with incompatible score scales.
 
 ---
 
-## Embedding Pipeline
+## Embeddings
 
-Embeddings are generated using:
+Embeddings are generated using `sentence-transformers/all-MiniLM-L6-v2`:
 
-- Sentence Transformers
-- all-MiniLM-L6-v2 (384 dimensions)
-
-Embeddings are:
-
-- Generated locally
-- Stored alongside dataset metadata
+- 384 dimensions
+- Generated locally (no external API)
+- Stored in MongoDB alongside metadata
 - Indexed using MongoDB Atlas `$vectorSearch`
-
-This avoids external API dependency and ensures reproducibility.
-
----
-
-## ETL Design
-
-The ETL pipeline is implemented as a standalone CLI module.
-
-Responsibilities:
-
-- Fetch datasets from UKCEH catalogue
-- Parse metadata (JSON/XML)
-- Store structured records
-- Generate embeddings
-- Support reprocessing
-
-Separation of ETL from API ensures:
-
-- Deterministic ingestion
-- Batch processing capability
-- Reduced coupling between ingestion and serving layers
 
 ---
 
 ## RAG Pipeline
 
-The RAG system:
+The retrieval-augmented generation system:
 
 1. Retrieves top-k datasets via hybrid search
-2. Constructs context from metadata fields
-3. Passes context to language model
-4. Returns generated answer with citation references
+2. Builds context from dataset metadata
+3. Passes context to language model (Ollama) or returns structured summary
+4. Returns answer with source citations
 
-The system prioritizes grounded responses using retrieved metadata rather than free-form generation.
-
----
-
-## Security Model
-
-- JWT-based authentication
-- Role-based access control
-- Admin-only upload routes
-- Environment-based secret configuration
+Context is filtered by user access level before generation.
 
 ---
 
-## Deployment Model
+## Access Control
 
-- Dockerized services
-- Nginx reverse proxy
+- JWT authentication with 7-day expiry
+- Two roles: `admin` and `researcher`
+- Datasets have access levels: `public`, `restricted`, `admin_only`
+- Search results are filtered based on user role
+- RAG context excludes datasets the user cannot access
+
+---
+
+## ETL Pipeline
+
+The ETL module:
+
+- Fetches metadata from UKCEH catalogue
+- Parses JSON and XML formats
+- Validates against ISO 19115 schema
+- Generates embeddings
+- Stores records in MongoDB
+
+It runs independently via CLI and can be re-executed for updates.
+
+---
+
+## Deployment
+
+- Docker Compose for local development
+- Nginx reverse proxy in production
 - HTTPS via Let's Encrypt
 - Hosted on Linode
-
-The deployment configuration mirrors local development through Docker Compose.

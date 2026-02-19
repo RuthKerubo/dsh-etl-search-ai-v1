@@ -47,6 +47,7 @@ class DatasetResponse(BaseModel):
     bounding_box: Optional[dict] = None
     temporal_extent: Optional[dict] = None
     iso_compliance: Optional[ComplianceInfo] = None
+    access_level: str = "public"
 
 
 # =============================================================================
@@ -64,6 +65,7 @@ class SearchResultItem(BaseModel):
     from_keyword: bool = False
     semantic_rank: Optional[int] = None
     keyword_rank: Optional[int] = None
+    access_level: str = "public"
 
 
 class SearchResponse(BaseModel):
@@ -76,6 +78,8 @@ class SearchResponse(BaseModel):
     semantic_results: int = 0
     keyword_results: int = 0
     duration_ms: float
+    query_analysis: Optional[dict] = None
+    expanded_query: Optional[str] = None
 
 
 # =============================================================================

@@ -41,6 +41,7 @@ class DatasetRetriever:
                     "title": 1,
                     "abstract": 1,
                     "keywords": 1,
+                    "access_level": 1,
                     "extracted_text": 1,
                     "relevance_score": 1,
                 }
@@ -57,6 +58,7 @@ class DatasetRetriever:
                         "title": doc.get("title", ""),
                         "abstract": doc.get("abstract", "")[:1000],
                         "keywords": doc.get("keywords", []),
+                        "access_level": doc.get("access_level", "public"),
                         "extracted_text": doc.get("extracted_text", "")[:2000]
                         if include_extracted_text
                         else "",

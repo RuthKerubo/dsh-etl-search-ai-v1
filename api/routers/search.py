@@ -8,8 +8,11 @@ import time
 from fastapi import APIRouter, Query
 from typing import Optional
 
+from api.auth.dependencies import OptionalUser
 from api.dependencies import DatasetRepoDep, HybridSearchDep
 from api.schemas.responses import SearchResponse, SearchResultItem
+from etl.guardrails import DataGuardrails
+from etl.search.advanced import AdvancedSearchPipeline
 
 router = APIRouter(prefix="/search", tags=["search"])
 
@@ -22,6 +25,8 @@ async def search_datasets(
         None,
         description="Force search mode: 'hybrid', 'semantic', 'keyword'. Default: auto",
     ),
+    advanced: bool = Query(False, description="Enable advanced pipeline (query expansion + reranking)"),
+    current_user: OptionalUser = None,
     repo: DatasetRepoDep = None,
     hybrid_search: HybridSearchDep = None,
 ) -> SearchResponse:
@@ -31,22 +36,32 @@ async def search_datasets(
     Automatically uses the best available search mode:
     - If embeddings configured: hybrid search (semantic + keyword)
     - Otherwise: keyword-only search
+
+    Access control: anonymous users only see public datasets.
     """
     start_time = time.time()
+    user_role = current_user.get("role") if current_user else None
 
     can_hybrid = hybrid_search is not None
 
     if mode == "keyword" or (mode is None and not can_hybrid):
-        return await _keyword_search(q, limit, repo, start_time)
-
+        response = await _keyword_search(q, limit, repo, start_time)
     elif mode == "semantic" and can_hybrid:
-        return await _semantic_search(q, limit, hybrid_search, start_time)
-
+        response = await _semantic_search(q, limit, hybrid_search, start_time)
     elif can_hybrid:
-        return await _hybrid_search(q, limit, hybrid_search, start_time)
-
+        response = await _hybrid_search(q, limit, hybrid_search, start_time, advanced)
     else:
-        return await _keyword_search(q, limit, repo, start_time)
+        response = await _keyword_search(q, limit, repo, start_time)
+
+    # Apply access-level guardrails
+    filtered = DataGuardrails.filter_datasets_by_access(
+        [r.model_dump() for r in response.results],
+        user_role,
+    )
+    response.results = [SearchResultItem(**d) for d in filtered]
+    response.total = len(response.results)
+
+    return response
 
 
 async def _hybrid_search(
@@ -54,9 +69,27 @@ async def _hybrid_search(
     limit: int,
     service,
     start_time: float,
+    advanced: bool = False,
 ) -> SearchResponse:
-    """Perform hybrid search."""
-    response = await service.search(query, limit=limit)
+    """Perform hybrid search, optionally with advanced pipeline."""
+    hybrid_response = await service.search(query, limit=limit)
+
+    hybrid_results = hybrid_response.results
+    query_analysis_dict: Optional[dict] = None
+    expanded_query: Optional[str] = None
+
+    if advanced:
+        pipeline = AdvancedSearchPipeline(use_reranker=True)
+        advanced_result = pipeline.search(query, hybrid_results)
+        hybrid_results = advanced_result.results
+        query_analysis_dict = {
+            "intents": advanced_result.query_analysis.intents,
+            "has_temporal_intent": advanced_result.query_analysis.has_temporal_intent,
+            "has_spatial_intent": advanced_result.query_analysis.has_spatial_intent,
+            "synonyms_added": advanced_result.query_analysis.synonyms_added,
+            "reranked": advanced_result.reranked,
+        }
+        expanded_query = advanced_result.query_analysis.expanded
 
     results = [
         SearchResultItem(
@@ -69,8 +102,9 @@ async def _hybrid_search(
             from_keyword=r.from_keyword,
             semantic_rank=r.semantic_rank,
             keyword_rank=r.keyword_rank,
+            access_level=getattr(r, "access_level", "public"),
         )
-        for r in response.results
+        for r in hybrid_results
     ]
 
     duration_ms = (time.time() - start_time) * 1000
@@ -80,10 +114,12 @@ async def _hybrid_search(
         results=results,
         total=len(results),
         mode="hybrid",
-        query_type=response.query_type.value,
-        semantic_results=response.total_semantic,
-        keyword_results=response.total_keyword,
+        query_type=hybrid_response.query_type.value,
+        semantic_results=hybrid_response.total_semantic,
+        keyword_results=hybrid_response.total_keyword,
         duration_ms=round(duration_ms, 2),
+        query_analysis=query_analysis_dict,
+        expanded_query=expanded_query,
     )
 
 
@@ -106,6 +142,7 @@ async def _semantic_search(
             from_semantic=True,
             from_keyword=False,
             semantic_rank=r.semantic_rank,
+            access_level=getattr(r, "access_level", "public"),
         )
         for r in results_raw
     ]
@@ -143,6 +180,7 @@ async def _keyword_search(
             from_semantic=False,
             from_keyword=True,
             keyword_rank=i + 1,
+            access_level=getattr(d, "access_level", "public"),
         )
         for i, d in enumerate(datasets)
     ]

@@ -43,6 +43,7 @@ class SearchResult:
     abstract: str
     score: float  # Similarity score (0-1, higher is better)
     keywords: list[str] = field(default_factory=list)
+    access_level: str = "public"
 
 
 @dataclass
@@ -209,6 +210,7 @@ class VectorStore:
                     "title": 1,
                     "abstract": 1,
                     "keywords": 1,
+                    "access_level": 1,
                     "score": {"$meta": "vectorSearchScore"},
                 }
             },
@@ -226,6 +228,7 @@ class VectorStore:
                 abstract=doc.get("abstract", ""),
                 score=score,
                 keywords=doc.get("keywords", []) or [],
+                access_level=doc.get("access_level", "public"),
             ))
 
         return results

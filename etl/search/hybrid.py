@@ -53,6 +53,7 @@ class HybridSearchResult:
     # Metadata
     keywords: list[str] = field(default_factory=list)
     organisation: Optional[str] = None
+    access_level: str = "public"
 
 
 @dataclass
@@ -256,6 +257,7 @@ class HybridSearchService:
                     abstract=result.abstract,
                     hybrid_score=0,
                     keywords=result.keywords,
+                    access_level=getattr(result, "access_level", "public"),
                 )
 
             scores[result.dataset_id].hybrid_score += rrf_score
@@ -273,11 +275,17 @@ class HybridSearchService:
                     abstract=dataset.abstract or "",
                     hybrid_score=0,
                     keywords=dataset.keywords,
+                    access_level=getattr(dataset, "access_level", "public"),
                 )
 
             scores[dataset.identifier].hybrid_score += rrf_score
             scores[dataset.identifier].keyword_rank = rank
             scores[dataset.identifier].from_keyword = True
+
+            # Keyword results carry authoritative access_level from MongoDB
+            scores[dataset.identifier].access_level = getattr(
+                dataset, "access_level", "public"
+            )
 
             # Extract organisation from responsible parties
             if dataset.responsible_parties:
