@@ -3,6 +3,7 @@ RAG (Retrieval Augmented Generation) router.
 
 Full RAG pipeline: vector retrieval -> context building -> LLM generation.
 Falls back to context-only response when Ollama is unavailable.
+Includes query intent detection for non-search queries.
 """
 
 from typing import List, Optional
@@ -20,7 +21,7 @@ router = APIRouter(tags=["rag"])
 class RAGRequest(BaseModel):
     """Request body for RAG endpoint."""
 
-    question: str = Field(..., min_length=3, description="The question to answer")
+    question: str = Field(..., min_length=1, description="The question to answer")
     top_k: int = Field(5, ge=1, le=20, description="Number of context documents")
     use_llm: bool = Field(True, description="Whether to use LLM for answer generation")
 
@@ -51,7 +52,11 @@ async def rag_query(
 
     Retrieves relevant datasets via vector search, builds context,
     and generates an answer using Ollama (with fallback to context-only).
-    Context is filtered by the user's access level. PII is redacted from answers.
+    
+    Includes guardrails:
+    - Query intent detection (handles greetings, help requests, off-topic)
+    - Context filtered by user's access level
+    - PII redacted from answers
     """
     if model is None:
         raise HTTPException(
