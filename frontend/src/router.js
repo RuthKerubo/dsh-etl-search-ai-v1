@@ -7,6 +7,7 @@ import DatasetDetail from './views/DatasetDetail.vue'
 import Admin from './views/Admin.vue'
 import AdminUpload from './views/AdminUpload.vue'
 import AdminPending from './views/AdminPending.vue'
+import AdminBulkUpload from './views/AdminBulkUpload.vue'
 import Chat from './views/Chat.vue'
 import About from './views/About.vue'
 
@@ -21,6 +22,7 @@ const routes = [
   { path: '/admin', component: Admin, meta: { requiresAdmin: true } },
   { path: '/admin/upload', component: AdminUpload, meta: { requiresAdmin: true } },
   { path: '/admin/pending', component: AdminPending, meta: { requiresAdmin: true } },
+  { path: '/admin/bulk-upload', component: AdminBulkUpload, meta: { requiresAdmin: true } },
 ]
 
 const router = createRouter({

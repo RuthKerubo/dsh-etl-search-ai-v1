@@ -1,0 +1,86 @@
+[
+  {
+    "title": "UK Butterfly Monitoring Scheme - Weekly Transect Counts 2020-2023",
+    "abstract": "Weekly butterfly counts from standardised transect walks across 2,500 sites in the United Kingdom. Data includes species identification, abundance counts, weather conditions, and habitat classifications. Part of the long-running UKBMS programme monitoring butterfly populations since 1976.",
+    "identifier": "ukbms-transect-2020-2023",
+    "keywords": ["butterflies", "lepidoptera", "biodiversity", "transect", "monitoring", "population"],
+    "topic_categories": ["biota", "environment"],
+    "lineage": "Data collected by trained volunteers following UKBMS protocols. Quality assured by UK Centre for Ecology & Hydrology.",
+    "bounding_box": {"west": -8.65, "east": 1.77, "south": 49.86, "north": 60.86},
+    "temporal_extent": {"start": "2020-01-01", "end": "2023-12-31"},
+    "responsible_organisation": "UK Butterfly Monitoring Scheme",
+    "access_level": "public"
+  },
+  {
+    "title": "Freshwater Invertebrate Survey - English Rivers 2019-2022",
+    "abstract": "Macroinvertebrate sampling data from 450 river sites across England. Includes taxonomic identification to species level, biotic indices (BMWP, ASPT, LIFE), habitat assessments, and water chemistry measurements. Used for Water Framework Directive classification.",
+    "identifier": "freshwater-invert-eng-2019-2022",
+    "keywords": ["invertebrates", "macroinvertebrates", "rivers", "freshwater", "water quality", "biomonitoring"],
+    "topic_categories": ["inlandWaters", "biota"],
+    "lineage": "Samples collected using standard 3-minute kick sampling. Identification by accredited laboratories.",
+    "bounding_box": {"west": -5.72, "east": 1.77, "south": 49.96, "north": 55.81},
+    "temporal_extent": {"start": "2019-03-01", "end": "2022-10-31"},
+    "responsible_organisation": "Environment Agency",
+    "access_level": "public"
+  },
+  {
+    "title": "Peatland Carbon Flux Measurements - Flow Country 2018-2023",
+    "abstract": "Eddy covariance measurements of CO2 and CH4 fluxes from blanket bog sites in the Flow Country, Scotland. Includes net ecosystem exchange, gross primary productivity, ecosystem respiration, and methane emissions at 30-minute resolution.",
+    "identifier": "peatland-carbon-flow-2018-2023",
+    "keywords": ["peatland", "carbon", "methane", "CO2", "flux", "eddy covariance", "blanket bog"],
+    "topic_categories": ["climatologyMeteorologyAtmosphere", "environment"],
+    "lineage": "Continuous measurements from flux towers. Gap-filled using REddyProc. Quality flags included.",
+    "bounding_box": {"west": -4.2, "east": -3.4, "south": 58.2, "north": 58.6},
+    "temporal_extent": {"start": "2018-01-01", "end": "2023-12-31"},
+    "responsible_organisation": "University of Stirling",
+    "access_level": "public"
+  },
+  {
+    "title": "Urban Air Quality Monitoring - Manchester Greater Area 2021-2024",
+    "abstract": "Hourly concentrations of NO2, PM2.5, PM10, and O3 from 35 monitoring stations across Greater Manchester. Includes roadside, urban background, and suburban sites. Data supports Clean Air Zone assessment and public health research.",
+    "identifier": "urban-air-quality-manchester-2021-2024",
+    "keywords": ["air quality", "pollution", "NO2", "particulate matter", "PM2.5", "urban", "monitoring"],
+    "topic_categories": ["climatologyMeteorologyAtmosphere", "health"],
+    "lineage": "Automatic monitoring using reference methods. AURN and local authority network data combined.",
+    "bounding_box": {"west": -2.73, "east": -1.91, "south": 53.34, "north": 53.68},
+    "temporal_extent": {"start": "2021-01-01", "end": "2024-06-30"},
+    "responsible_organisation": "Greater Manchester Combined Authority",
+    "access_level": "public"
+  },
+  {
+    "title": "Coastal Erosion Monitoring - Norfolk Cliffs 2015-2023",
+    "abstract": "Annual cliff-top surveys using differential GPS along 45km of the Norfolk coast from Weybourne to Happisburgh. Includes erosion rates, cliff profiles, geological classifications, and storm event impacts. Critical for coastal management planning.",
+    "identifier": "coastal-erosion-norfolk-2015-2023",
+    "keywords": ["coastal", "erosion", "cliffs", "geomorphology", "sea level", "storms"],
+    "topic_categories": ["geoscientificInformation", "oceans"],
+    "lineage": "Annual surveys in late summer. GPS accuracy ±2cm. Historical rates calculated from 1990s baseline.",
+    "bounding_box": {"west": 0.95, "east": 1.55, "south": 52.85, "north": 53.01},
+    "temporal_extent": {"start": "2015-09-01", "end": "2023-09-30"},
+    "responsible_organisation": "British Geological Survey",
+    "access_level": "public"
+  },
+  {
+    "title": "Restricted: Protected Species Location Records - Scotland 2020-2024",
+    "abstract": "Detailed location records for Schedule 1 protected bird species and European Protected Species across Scotland. Includes nest sites, roost locations, and breeding territories. Access restricted to prevent disturbance.",
+    "identifier": "protected-species-scotland-2020-2024",
+    "keywords": ["protected species", "conservation", "birds", "mammals", "sensitive", "locations"],
+    "topic_categories": ["biota", "environment"],
+    "lineage": "Data compiled from licensed surveys and NatureScot records. Locations generalised to 1km grid for public versions.",
+    "bounding_box": {"west": -8.65, "east": -0.73, "south": 54.63, "north": 60.86},
+    "temporal_extent": {"start": "2020-01-01", "end": "2024-12-31"},
+    "responsible_organisation": "NatureScot",
+    "access_level": "restricted"
+  },
+  {
+    "title": "Admin Only: Research Site Access Codes and Contact Details",
+    "abstract": "Internal database of access arrangements for UKCEH research sites including gate codes, landowner contacts, and permit requirements. Contains personally identifiable information.",
+    "identifier": "internal-site-access-2024",
+    "keywords": ["internal", "access", "sites", "contacts", "permits"],
+    "topic_categories": ["environment"],
+    "lineage": "Compiled from site managers. Updated quarterly.",
+    "bounding_box": {"west": -8.65, "east": 1.77, "south": 49.86, "north": 60.86},
+    "temporal_extent": {"start": "2024-01-01", "end": "2024-12-31"},
+    "responsible_organisation": "UKCEH Internal",
+    "access_level": "admin_only"
+  }
+]
