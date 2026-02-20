@@ -5,9 +5,9 @@
     <section class="mb-10">
       <h1 class="text-2xl font-bold text-emerald-900 mb-4">About</h1>
       <p class="text-gray-600 leading-relaxed mb-4">
-        This platform provides search over UK environmental dataset metadata 
-        from the UKCEH Environmental Data Centre. It was built as a coding 
-        exercise for a Research Software Engineer position.
+        The DSH Environmental Dataset Search Platform is a research-oriented retrieval system 
+        for discovering UK environmental datasets. It demonstrates modern search techniques 
+        including hybrid retrieval and semantic similarity applied to scientific metadata.
       </p>
       <p class="text-gray-600 leading-relaxed">
         The system combines two retrieval methods: keyword search over text 
